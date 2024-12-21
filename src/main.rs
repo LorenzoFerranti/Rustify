@@ -1,37 +1,37 @@
-use eframe::egui::{Context, CentralPanel, ViewportBuilder, TextEdit, TextStyle, Key, ProgressBar, Slider};
+mod sink_wrapper;
+
+use eframe::egui::{Context, CentralPanel, ViewportBuilder, TextEdit, TextStyle, Key, ProgressBar, Slider, Checkbox};
 use eframe::{Frame};
 
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 
 use std::fs::{read_dir, File};
 use std::io::BufReader;
 use std::path::PathBuf;
 use rand::random;
 
+use crate::sink_wrapper::SinkWrapper;
+
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
 struct RustifyApp {
     path: String,
-    output_stream: OutputStream,
-    output_stream_handle: OutputStreamHandle,
-    sink: Sink,
-    volume: f32,
+    sink: SinkWrapper,
+    volume_input: f32,
+    paused_input: bool,
 }
 
 impl RustifyApp {
     pub fn new() -> Self {
-        let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&output_stream_handle).unwrap();
         Self {
             path: MY_LOCAL_PATH.to_string(),
-            output_stream,
-            output_stream_handle,
-            sink,
-            volume: 1.0
+            sink: SinkWrapper::new(),
+            volume_input: 1.0,
+            paused_input: false,
         }
     }
 
-    pub fn play_random_from_path(&self) {
+    pub fn play_random_from_path(&mut self) {
         self.sink.clear();
         let mut current_path = self.path.clone();
         loop {
@@ -51,7 +51,7 @@ impl RustifyApp {
 
     }
 
-    fn append_music(&self, path_buf: &PathBuf) {
+    fn append_music(&mut self, path_buf: &PathBuf) {
         println!("appending {:?}", path_buf.to_str());
         let file = BufReader::new(File::open(path_buf).unwrap());
         let source = Decoder::new(file).unwrap();
@@ -118,9 +118,13 @@ impl eframe::App for RustifyApp {
             ui.add_space(15.0);
 
             ui.label("Volume");
-            let response = ui.add(Slider::new(&mut self.volume, 0.0..=1.0));
+            let response = ui.add(Slider::new(&mut self.volume_input, 0.0..=1.0));
             if response.changed() {
-                self.sink.set_volume(self.volume);
+                self.sink.set_volume(self.volume_input);
+            }
+            let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
+            if response.changed() {
+                self.sink.set_paused(self.paused_input);
             }
         });
     }
