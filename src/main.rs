@@ -1,4 +1,4 @@
-use eframe::egui::{Context, CentralPanel, ViewportBuilder, TextEdit, TextStyle, Key, ProgressBar};
+use eframe::egui::{Context, CentralPanel, ViewportBuilder, TextEdit, TextStyle, Key, ProgressBar, Slider};
 use eframe::{Frame};
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
@@ -15,6 +15,7 @@ struct RustifyApp {
     output_stream: OutputStream,
     output_stream_handle: OutputStreamHandle,
     sink: Sink,
+    volume: f32,
 }
 
 impl RustifyApp {
@@ -26,6 +27,7 @@ impl RustifyApp {
             output_stream,
             output_stream_handle,
             sink,
+            volume: 1.0
         }
     }
 
@@ -105,11 +107,21 @@ impl eframe::App for RustifyApp {
             if ui.button("Play random track").clicked() {
                 self.play_random_from_path();
             }
+            ui.add_space(15.0);
+
+            ui.label("Root path");
             ui.add(
                 TextEdit::singleline(&mut self.path)
                     .desired_width(f32::INFINITY)
                     .font(TextStyle::Monospace),
             );
+            ui.add_space(15.0);
+
+            ui.label("Volume");
+            let response = ui.add(Slider::new(&mut self.volume, 0.0..=1.0));
+            if response.changed() {
+                self.sink.set_volume(self.volume);
+            }
         });
     }
 }
