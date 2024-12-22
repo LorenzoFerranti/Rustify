@@ -1,3 +1,4 @@
+mod helper;
 mod sink_wrapper;
 
 use rand::random;
@@ -133,8 +134,9 @@ impl eframe::App for RustifyApp {
             if let Some(track) = self.sink.get_current_track() {
                 let pos = self.sink.get_current_track_pos();
                 progress = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
-                ui.label(track.name);
-                ui.label(track.album);
+                ui.label(format!("Track name: {}", track.name));
+                ui.label(format!("Album: {}", track.album));
+                ui.label(format!("Artist(s): {}", track.artist));
                 ui.label(format!("{:?}", pos));
                 ui.label(format!("{:?}", track.duration));
             }
