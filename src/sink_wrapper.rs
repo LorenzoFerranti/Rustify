@@ -1,13 +1,31 @@
-use rodio::cpal::FromSample;
-use rodio::{OutputStream, OutputStreamHandle, Sample, Sink, Source};
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 use std::collections::VecDeque;
+use std::fs::{DirEntry, File};
+use std::io::BufReader;
 use std::time::Duration;
+
+#[derive(Clone)]
+pub struct Track {
+    pub name: String,
+    pub album: String,
+    pub duration: Duration,
+}
+
+impl Track {
+    pub fn new(name: String, album: String, duration: Duration) -> Self {
+        Self {
+            name,
+            album,
+            duration,
+        }
+    }
+}
 
 pub struct SinkWrapper {
     output_stream: OutputStream,
     output_stream_handle: OutputStreamHandle,
     sink: Sink,
-    queue_durations: VecDeque<Duration>,
+    track_queue: VecDeque<Track>,
 }
 
 impl SinkWrapper {
@@ -18,39 +36,46 @@ impl SinkWrapper {
             output_stream,
             output_stream_handle,
             sink,
-            queue_durations: VecDeque::new(),
+            track_queue: VecDeque::new(),
         }
     }
 
     pub fn clear(&mut self) {
         self.sink.clear();
-        self.queue_durations.clear();
+        self.track_queue.clear();
     }
 
-    pub fn append<S>(&mut self, source: S)
-    where
-        S: Source + Send + 'static,
-        f32: FromSample<S::Item>,
-        S::Item: Sample + Send,
-    {
-        self.delete_old_durations();
-        self.queue_durations
-            .push_back(source.total_duration().unwrap());
+    pub fn append(&mut self, entry: &DirEntry) {
+        let path_buf = entry.path();
+        let file = BufReader::new(File::open(path_buf).unwrap());
+        let source = Decoder::new(file).unwrap();
+
+        let name = entry.file_name().to_str().unwrap().to_string();
+        let duration = source.total_duration().unwrap();
+
+        self.delete_old_tracks();
+        self.track_queue
+            .push_back(Track::new(name, "Album".to_string(), duration));
         self.sink.append(source);
     }
 
-    pub fn get_current_track_duration(&mut self) -> Option<Duration> {
-        self.delete_old_durations();
-        Some(self.queue_durations.front()?.clone())
+    pub fn skip(&mut self) {
+        self.sink.skip_one();
+        self.delete_old_tracks();
+    }
+
+    pub fn get_current_track(&mut self) -> Option<Track> {
+        self.delete_old_tracks();
+        Some(self.track_queue.front()?.clone())
     }
 
     pub fn get_current_track_pos(&self) -> Duration {
         self.sink.get_pos()
     }
 
-    fn delete_old_durations(&mut self) {
-        while self.queue_durations.len() > self.sink.len() {
-            self.queue_durations.pop_front();
+    fn delete_old_tracks(&mut self) {
+        while self.track_queue.len() > self.sink.len() {
+            self.track_queue.pop_front();
         }
     }
 

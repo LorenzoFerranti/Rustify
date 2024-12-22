@@ -1,18 +1,19 @@
 mod sink_wrapper;
 
-use eframe::egui::{
-    CentralPanel, Checkbox, Context, Key, ProgressBar, Slider, TextEdit, TextStyle, ViewportBuilder,
-};
-use eframe::{CreationContext, Frame};
-
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
-
 use rand::random;
-use std::fs::{read_dir, File};
+use std::fs::{read_dir, DirEntry, File};
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use eframe::egui::{
+    CentralPanel, Checkbox, Context, ProgressBar, Rounding, Slider, TextEdit, TextStyle,
+    ViewportBuilder,
+};
+use eframe::{CreationContext, Frame};
+
+use rodio::{Decoder, Source};
 
 use crate::sink_wrapper::SinkWrapper;
 
@@ -43,8 +44,8 @@ impl RustifyApp {
     pub fn append_random_from_path(&mut self) {
         let mut current_path = self.path.clone();
         loop {
-            if let Some(v) = Self::get_mp3_pathbufs(&current_path) {
-                self.append_music(&v[get_random_index(&v)]);
+            if let Some(v) = Self::get_mp3_dir_entries(&current_path) {
+                self.sink.append(&v[get_random_index(&v)]);
                 return;
             }
             // no .mp3 files
@@ -57,14 +58,7 @@ impl RustifyApp {
         }
     }
 
-    fn append_music(&mut self, path_buf: &PathBuf) {
-        println!("appending {:?}", path_buf.to_str());
-        let file = BufReader::new(File::open(path_buf).unwrap());
-        let source = Decoder::new(file).unwrap();
-        self.sink.append(source);
-    }
-
-    fn get_mp3_pathbufs(path: &str) -> Option<Vec<PathBuf>> {
+    fn get_mp3_dir_entries(path: &str) -> Option<Vec<DirEntry>> {
         let mut res = vec![];
         let dir_iter = read_dir(path).ok()?;
 
@@ -72,7 +66,7 @@ impl RustifyApp {
             let path_buf = entry.path();
             if let Some(ext) = path_buf.extension() {
                 if ext == "mp3" {
-                    res.push(path_buf);
+                    res.push(entry);
                 }
             }
         }
@@ -112,6 +106,9 @@ impl eframe::App for RustifyApp {
             if ui.button("Add random track to queue").clicked() {
                 self.append_random_from_path();
             }
+            if ui.button("Skip track").clicked() {
+                self.sink.skip();
+            }
             ui.add_space(15.0);
 
             ui.label("Root path");
@@ -131,17 +128,18 @@ impl eframe::App for RustifyApp {
             if response.changed() {
                 self.sink.set_paused(self.paused_input);
             }
-            if !self.paused_input {
-                //ctx.request_repaint();
-            }
+
             let mut progress = 0.0;
-            if let Some(dur) = self.sink.get_current_track_duration() {
+            if let Some(track) = self.sink.get_current_track() {
                 let pos = self.sink.get_current_track_pos();
-                progress = pos.as_secs_f32().floor() / dur.as_secs_f32();
+                progress = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
+                ui.label(track.name);
+                ui.label(track.album);
                 ui.label(format!("{:?}", pos));
-                ui.label(format!("{:?}", dur));
+                ui.label(format!("{:?}", track.duration));
             }
-            ui.add(ProgressBar::new(progress));
+
+            ui.add(ProgressBar::new(progress).rounding(Rounding::ZERO));
         });
     }
 }
