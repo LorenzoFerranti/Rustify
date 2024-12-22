@@ -1,7 +1,7 @@
+use rodio::cpal::FromSample;
 use rodio::{OutputStream, OutputStreamHandle, Sample, Sink, Source};
 use std::collections::VecDeque;
 use std::time::Duration;
-use rodio::cpal::FromSample;
 
 pub struct SinkWrapper {
     output_stream: OutputStream,
@@ -27,15 +27,15 @@ impl SinkWrapper {
         self.queue_durations.clear();
     }
 
-
     pub fn append<S>(&mut self, source: S)
     where
         S: Source + Send + 'static,
         f32: FromSample<S::Item>,
-        S::Item: Sample + Send
+        S::Item: Sample + Send,
     {
         self.delete_old_durations();
-        self.queue_durations.push_back(source.total_duration().unwrap());
+        self.queue_durations
+            .push_back(source.total_duration().unwrap());
         self.sink.append(source);
     }
 
@@ -47,9 +47,6 @@ impl SinkWrapper {
     pub fn get_current_track_pos(&self) -> Duration {
         self.sink.get_pos()
     }
-
-
-
 
     fn delete_old_durations(&mut self) {
         while self.queue_durations.len() > self.sink.len() {
@@ -68,5 +65,4 @@ impl SinkWrapper {
             self.sink.play();
         }
     }
-
 }
