@@ -27,9 +27,6 @@ impl SinkWrapper {
         self.queue_durations.clear();
     }
 
-    pub fn play(&self) {
-        self.sink.play()
-    }
 
     pub fn append<S>(&mut self, source: S)
     where
@@ -37,8 +34,27 @@ impl SinkWrapper {
         f32: FromSample<S::Item>,
         S::Item: Sample + Send
     {
+        self.delete_old_durations();
         self.queue_durations.push_back(source.total_duration().unwrap());
         self.sink.append(source);
+    }
+
+    pub fn get_current_track_duration(&mut self) -> Option<Duration> {
+        self.delete_old_durations();
+        Some(self.queue_durations.front()?.clone())
+    }
+
+    pub fn get_current_track_pos(&self) -> Duration {
+        self.sink.get_pos()
+    }
+
+
+
+
+    fn delete_old_durations(&mut self) {
+        while self.queue_durations.len() > self.sink.len() {
+            self.queue_durations.pop_front();
+        }
     }
 
     pub fn set_volume(&self, value: f32) {

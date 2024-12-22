@@ -1,18 +1,22 @@
 mod sink_wrapper;
 
-use eframe::egui::{Context, CentralPanel, ViewportBuilder, TextEdit, TextStyle, Key, ProgressBar, Slider, Checkbox};
-use eframe::{Frame};
+use eframe::egui::{
+    CentralPanel, Checkbox, Context, Key, ProgressBar, Slider, TextEdit, TextStyle, ViewportBuilder,
+};
+use eframe::{CreationContext, Frame};
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 
+use rand::random;
 use std::fs::{read_dir, File};
 use std::io::BufReader;
 use std::path::PathBuf;
-use rand::random;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use crate::sink_wrapper::SinkWrapper;
 
-const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
+const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs\\Short";
 
 struct RustifyApp {
     path: String,
@@ -22,7 +26,12 @@ struct RustifyApp {
 }
 
 impl RustifyApp {
-    pub fn new() -> Self {
+    pub fn new(cc: &CreationContext) -> Self {
+        let ctx_clone = cc.egui_ctx.clone();
+        std::thread::spawn(move || loop {
+            sleep(Duration::from_millis(500));
+            ctx_clone.request_repaint();
+        });
         Self {
             path: MY_LOCAL_PATH.to_string(),
             sink: SinkWrapper::new(),
@@ -31,13 +40,11 @@ impl RustifyApp {
         }
     }
 
-    pub fn play_random_from_path(&mut self) {
-        self.sink.clear();
+    pub fn append_random_from_path(&mut self) {
         let mut current_path = self.path.clone();
         loop {
             if let Some(v) = Self::get_mp3_pathbufs(&current_path) {
                 self.append_music(&v[get_random_index(&v)]);
-                self.sink.play();
                 return;
             }
             // no .mp3 files
@@ -48,7 +55,6 @@ impl RustifyApp {
                 return;
             }
         }
-
     }
 
     fn append_music(&mut self, path_buf: &PathBuf) {
@@ -57,7 +63,6 @@ impl RustifyApp {
         let source = Decoder::new(file).unwrap();
         self.sink.append(source);
     }
-
 
     fn get_mp3_pathbufs(path: &str) -> Option<Vec<PathBuf>> {
         let mut res = vec![];
@@ -70,7 +75,6 @@ impl RustifyApp {
                     res.push(path_buf);
                 }
             }
-
         }
 
         if res.is_empty() {
@@ -103,9 +107,10 @@ impl RustifyApp {
 
 impl eframe::App for RustifyApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        //println!("Update!!{:?}", Instant::now());
         CentralPanel::default().show(ctx, |ui| {
-            if ui.button("Play random track").clicked() {
-                self.play_random_from_path();
+            if ui.button("Add random track to queue").clicked() {
+                self.append_random_from_path();
             }
             ui.add_space(15.0);
 
@@ -126,12 +131,22 @@ impl eframe::App for RustifyApp {
             if response.changed() {
                 self.sink.set_paused(self.paused_input);
             }
+            if !self.paused_input {
+                //ctx.request_repaint();
+            }
+            let mut progress = 0.0;
+            if let Some(dur) = self.sink.get_current_track_duration() {
+                let pos = self.sink.get_current_track_pos();
+                progress = pos.as_secs_f32().floor() / dur.as_secs_f32();
+                ui.label(format!("{:?}", pos));
+                ui.label(format!("{:?}", dur));
+            }
+            ui.add(ProgressBar::new(progress));
         });
     }
 }
 
 fn main() -> eframe::Result {
-
     let native_options = eframe::NativeOptions {
         viewport: ViewportBuilder::default().with_inner_size((600.0, 600.0)),
         ..eframe::NativeOptions::default()
@@ -140,7 +155,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Rustify",
         native_options,
-        Box::new(|_| Ok(Box::new(RustifyApp::new()))),
+        Box::new(|cc| Ok(Box::new(RustifyApp::new(cc)))),
     )
 }
 
