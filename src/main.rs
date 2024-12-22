@@ -1,12 +1,13 @@
 mod helper;
 mod sink_wrapper;
 
-use rand::random;
-use std::fs::{read_dir, DirEntry, File};
-use std::io::BufReader;
-use std::path::PathBuf;
+use crate::sink_wrapper::SinkWrapper;
+
+use std::fs::{read_dir, DirEntry};
 use std::thread::sleep;
 use std::time::Duration;
+
+use rand::random;
 
 use eframe::egui::{
     CentralPanel, Checkbox, Context, ProgressBar, Rounding, Slider, TextEdit, TextStyle,
@@ -14,9 +15,6 @@ use eframe::egui::{
 };
 use eframe::{CreationContext, Frame};
 
-use rodio::{Decoder, Source};
-
-use crate::sink_wrapper::SinkWrapper;
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs\\Short";
 
@@ -101,14 +99,16 @@ impl RustifyApp {
 }
 
 impl eframe::App for RustifyApp {
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        //println!("Update!!{:?}", Instant::now());
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         CentralPanel::default().show(ctx, |ui| {
             if ui.button("Add random track to queue").clicked() {
                 self.append_random_from_path();
             }
             if ui.button("Skip track").clicked() {
                 self.sink.skip();
+            }
+            if ui.button("Clear queue").clicked() {
+                self.sink.clear();
             }
             ui.add_space(15.0);
 

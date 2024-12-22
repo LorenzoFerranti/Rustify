@@ -1,11 +1,12 @@
+use crate::sink_wrapper::Track;
+
 use std::fs::{DirEntry, File};
+
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::{MetadataOptions, StandardTagKey};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
-
-use crate::sink_wrapper::Track;
 
 pub fn get_track(entry: &DirEntry) -> Option<Track> {
     // Open the file

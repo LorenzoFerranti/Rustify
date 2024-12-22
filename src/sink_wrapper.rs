@@ -1,11 +1,11 @@
+use crate::helper;
+
 use std::collections::VecDeque;
 use std::fs::{DirEntry, File};
 use std::io::BufReader;
 use std::time::Duration;
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
-
-use crate::helper;
 
 #[derive(Clone)]
 pub struct Track {
@@ -16,15 +16,6 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn new(name: String, artist: String, album: String, duration: Duration) -> Self {
-        Self {
-            name,
-            artist,
-            album,
-            duration,
-        }
-    }
-
     pub fn default() -> Self {
         Self {
             name: "No name".to_string(),
@@ -64,7 +55,7 @@ impl SinkWrapper {
         let file = BufReader::new(File::open(path_buf).unwrap());
         let source = Decoder::new(file).unwrap();
 
-        let mut track = helper::get_track(entry).unwrap_or_else(|| Track::default());
+        let mut track = helper::get_track(entry).unwrap_or_else(Track::default);
         track.duration = source.total_duration().unwrap();
 
         self.delete_old_tracks();
