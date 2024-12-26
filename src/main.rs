@@ -10,13 +10,12 @@ use std::time::Duration;
 use rand::random;
 
 use eframe::egui::{
-    CentralPanel, Checkbox, Context, ProgressBar, Rounding, Slider, TextEdit, TextStyle,
-    ViewportBuilder,
+    CentralPanel, Checkbox, Context, Image, ProgressBar, Rounding, Slider, TextEdit, TextStyle,
+    TextureOptions, ViewportBuilder,
 };
 use eframe::{CreationContext, Frame};
 
-
-const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs\\Short";
+const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
 struct RustifyApp {
     path: String,
@@ -139,6 +138,14 @@ impl eframe::App for RustifyApp {
                 ui.label(format!("Artist(s): {}", track.artist));
                 ui.label(format!("{:?}", pos));
                 ui.label(format!("{:?}", track.duration));
+
+                if let Some(color_image) = track.image {
+                    let texture =
+                        ctx.load_texture("my_texture", color_image, TextureOptions::default());
+                    ui.add(Image::new(&texture).max_width(200.0).rounding(10.0));
+                } else {
+                    ui.label("NO image");
+                }
             }
 
             ui.add(ProgressBar::new(progress).rounding(Rounding::ZERO));

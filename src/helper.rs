@@ -2,23 +2,25 @@ use crate::sink_wrapper::Track;
 
 use std::fs::{DirEntry, File};
 
+use eframe::egui::{Color32, ColorImage};
+
+use image::RgbaImage;
+
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::{MetadataOptions, StandardTagKey};
+use symphonia::core::meta::{MetadataOptions, StandardTagKey, Visual};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
 pub fn get_track(entry: &DirEntry) -> Option<Track> {
-    // Open the file
     let path_buf = entry.path();
-    let file = File::open(path_buf).unwrap();
+    let file = File::open(path_buf).ok()?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
-    // Get the default codec and format registry
     let probe = get_probe();
     let hint = Hint::new();
 
-    // Probe the file for format information
+    // probe file
     let mut probed = probe
         .format(
             &hint,
@@ -29,26 +31,52 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
         .map_err(|e| format!("Failed to probe format: {}", e))
         .ok()?;
 
-    // Get metadata
-    if let Some(metadata) = probed.metadata.get() {
-        let current_metadata = metadata.current().unwrap();
-        let mut track = Track::default();
+    // get metadata
+    let binding = probed.metadata.get()?;
+    let current_metadata = binding.current()?;
+    let mut track = Track::default();
 
-        for tag in current_metadata.tags() {
-            if let Some(std_key) = tag.std_key {
-                let value = tag.value.to_string();
-                match std_key {
-                    StandardTagKey::Album => track.album = value,
-                    StandardTagKey::Artist => track.artist = value,
-                    StandardTagKey::TrackTitle => track.name = value,
-                    x => {
-                        println!("matched {:?} = {:?}", x, tag.value)
-                    }
-                }
+    // read tags
+    for tag in current_metadata.tags() {
+        if let Some(std_key) = tag.std_key {
+            let value = tag.value.to_string();
+            match std_key {
+                StandardTagKey::Album => track.album = value,
+                StandardTagKey::Artist => track.artist = value,
+                StandardTagKey::TrackTitle => track.name = value,
+                _ => {}
             }
         }
-
-        return Some(track);
     }
-    None
+
+    // read cover image
+    if let Some(v) = current_metadata.visuals().first() {
+        println!("Current metadata SOME!!!");
+        track.image = get_color_image_from_visual(v);
+    }
+
+    Some(track)
+}
+
+fn get_color_image_from_visual(v: &Visual) -> Option<ColorImage> {
+    let data_box = &*v.data;
+    let image = get_rgba_image_from_slice(data_box)?;
+    let (width, height) = image.dimensions();
+
+    // Convert to ColorImage
+    let pixels: Vec<_> = image
+        .pixels()
+        .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
+        .collect();
+    let color_image = ColorImage {
+        size: [width as usize, height as usize],
+        pixels,
+    };
+
+    Some(color_image)
+}
+
+fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
+    let image = image::load_from_memory(data).ok()?;
+    Some(image.to_rgba8())
 }

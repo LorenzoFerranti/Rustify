@@ -1,5 +1,6 @@
 # Rustify
-A desktop app to play locally saved music, written in Rust.
+A desktop app written in Rust for playing music files saved in local.
+
 Libraries used:
 - eframe
 - rodio

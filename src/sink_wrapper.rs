@@ -5,7 +5,10 @@ use std::fs::{DirEntry, File};
 use std::io::BufReader;
 use std::time::Duration;
 
+use eframe::egui::{ColorImage};
+
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
+
 
 #[derive(Clone)]
 pub struct Track {
@@ -13,6 +16,7 @@ pub struct Track {
     pub artist: String,
     pub album: String,
     pub duration: Duration,
+    pub image: Option<ColorImage>,
 }
 
 impl Track {
@@ -22,6 +26,7 @@ impl Track {
             artist: "No artist".to_string(),
             album: "No album".to_string(),
             duration: Duration::default(),
+            image: None,
         }
     }
 }
@@ -56,7 +61,10 @@ impl SinkWrapper {
         let source = Decoder::new(file).unwrap();
 
         let mut track = helper::get_track(entry).unwrap_or_else(Track::default);
-        track.duration = source.total_duration().unwrap();
+        track.duration = source.total_duration().unwrap_or_else(|| {
+            println!("No duration!!");
+            Duration::from_secs(1)
+        });
 
         self.delete_old_tracks();
         self.track_queue.push_back(track);
