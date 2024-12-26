@@ -1,10 +1,10 @@
 use crate::sink_wrapper::Track;
 
-use std::fs::{DirEntry, File};
-
 use eframe::egui::{Color32, ColorImage};
+use std::fs::{DirEntry, File};
+use std::path::PathBuf;
 
-use image::RgbaImage;
+use image::{DynamicImage, RgbaImage};
 
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
@@ -51,8 +51,12 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
 
     // read cover image
     if let Some(v) = current_metadata.visuals().first() {
-        println!("Current metadata SOME!!!");
         track.image = get_color_image_from_visual(v);
+    } else {
+        track.image = get_color_image_from_directory(entry);
+        if let Some(_) = track.image {
+            println!("GOT IMAGE FROM DIR!!!!")
+        }
     }
 
     Some(track)
@@ -61,22 +65,45 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
 fn get_color_image_from_visual(v: &Visual) -> Option<ColorImage> {
     let data_box = &*v.data;
     let image = get_rgba_image_from_slice(data_box)?;
-    let (width, height) = image.dimensions();
-
-    // Convert to ColorImage
-    let pixels: Vec<_> = image
-        .pixels()
-        .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
-        .collect();
-    let color_image = ColorImage {
-        size: [width as usize, height as usize],
-        pixels,
-    };
-
-    Some(color_image)
+    let image = get_color_image_from_rgba_image(image);
+    Some(image)
 }
 
 fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
     let image = image::load_from_memory(data).ok()?;
     Some(image.to_rgba8())
+}
+
+fn get_color_image_from_directory(entry: &DirEntry) -> Option<ColorImage> {
+    let mut path = entry.path();
+    path.pop();
+    path.push("cover.jpg");
+    println!("{:?}", path);
+    let mut dyn_img = image::open(&path).ok();
+    match dyn_img {
+        None => {
+            println!("NONE");
+            path.pop();
+            path.push("cover.png");
+            let rgba_img = image::open(&path).ok()?.to_rgba8();
+            Some(get_color_image_from_rgba_image(rgba_img))
+        }
+        Some(di) => {
+            println!("SOME");
+            Some(get_color_image_from_rgba_image(di.to_rgba8()))
+        }
+    }
+}
+
+fn get_color_image_from_rgba_image(image: RgbaImage) -> ColorImage {
+    let (width, height) = image.dimensions();
+    let pixels: Vec<_> = image
+        .pixels()
+        .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
+        .collect();
+
+    ColorImage {
+        size: [width as usize, height as usize],
+        pixels,
+    }
 }

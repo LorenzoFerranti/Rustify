@@ -5,10 +5,9 @@ use std::fs::{DirEntry, File};
 use std::io::BufReader;
 use std::time::Duration;
 
-use eframe::egui::{ColorImage};
+use eframe::egui::ColorImage;
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
-
 
 #[derive(Clone)]
 pub struct Track {
