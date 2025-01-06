@@ -101,4 +101,9 @@ impl SinkWrapper {
             self.sink.play();
         }
     }
+
+    pub fn jump(&mut self, point: f32) -> Option<()> {
+        let d = self.get_current_track()?.duration.mul_f32(point);
+        self.sink.try_seek(d).ok()
+    }
 }

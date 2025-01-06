@@ -22,6 +22,7 @@ struct RustifyApp {
     sink: SinkWrapper,
     volume_input: f32,
     paused_input: bool,
+    duration_slider: f32,
 }
 
 impl RustifyApp {
@@ -36,6 +37,7 @@ impl RustifyApp {
             sink: SinkWrapper::new(),
             volume_input: 1.0,
             paused_input: false,
+            duration_slider: 0.0,
         }
     }
 
@@ -129,10 +131,10 @@ impl eframe::App for RustifyApp {
                 self.sink.set_paused(self.paused_input);
             }
 
-            let mut progress = 0.0;
+            let mut enable_duration_bar = true;
             if let Some(track) = self.sink.get_current_track() {
                 let pos = self.sink.get_current_track_pos();
-                progress = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
+                self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
                 ui.label(format!("Track name: {}", track.name));
                 ui.label(format!("Album: {}", track.album));
                 ui.label(format!("Artist(s): {}", track.artist));
@@ -146,9 +148,23 @@ impl eframe::App for RustifyApp {
                 } else {
                     ui.label("NO image");
                 }
+            } else {
+                enable_duration_bar = false;
+                self.duration_slider = 0.0;
             }
 
-            ui.add(ProgressBar::new(progress).rounding(Rounding::ZERO));
+            ui.add_enabled_ui(enable_duration_bar, |ui| {
+                let response = ui.add(
+                    Slider::new(&mut self.duration_slider, 0.0..=1.0)
+                        .show_value(false)
+                        .trailing_fill(true),
+                );
+                if response.drag_stopped() {
+                    println!("{}", self.duration_slider);
+                    self.sink.jump(self.duration_slider);
+                }
+            });
+
         });
     }
 }
