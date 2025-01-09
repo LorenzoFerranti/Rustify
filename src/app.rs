@@ -7,7 +7,10 @@ use std::time::Duration;
 
 use rand::random;
 
-use eframe::egui::{Align, CentralPanel, Checkbox, Color32, Context, Image, Label, Layout, ProgressBar, RichText, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder};
+use eframe::egui::{
+    Align, CentralPanel, Checkbox, Color32, Context, Image, Label, Layout, ProgressBar, RichText,
+    Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder,
+};
 use eframe::{CreationContext, Frame};
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
@@ -108,9 +111,7 @@ impl RustifyApp {
 
 impl eframe::App for RustifyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-
         TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-
             let mut enable_duration_bar = true;
 
             if let Some(track) = self.sink.get_current_track() {
@@ -123,14 +124,13 @@ impl eframe::App for RustifyApp {
                     ui.heading(text);
                 });
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("Artist(s): {}", track.artist));
-                    ui.label(format!("Album: {} - ", track.album));
+                    ui.label(format!("{} - ", track.artist));
+                    ui.label(track.album);
                 });
             } else {
                 enable_duration_bar = false;
                 self.duration_slider = 0.0;
             }
-
 
             // slider
             ui.horizontal(|ui| {
@@ -146,9 +146,7 @@ impl eframe::App for RustifyApp {
                         self.spawn_duration_slider(ui);
                     });
                 });
-
             });
-
         });
 
         CentralPanel::default().show(ctx, |ui| {
@@ -190,11 +188,9 @@ impl eframe::App for RustifyApp {
                     ui.label("NO image");
                 }
             }
-
         });
     }
 }
-
 
 fn get_random_index<T>(v: &[T]) -> usize {
     random::<usize>() % v.len()

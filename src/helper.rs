@@ -1,9 +1,9 @@
 use crate::sink_wrapper::Track;
 
 use eframe::egui::{Color32, ColorImage};
+use image::RgbaImage;
 use std::fs::{DirEntry, File};
 use std::time::Duration;
-use image::RgbaImage;
 
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
@@ -120,5 +120,4 @@ pub fn formatted_duration(d: &Duration) -> String {
         min_padding.push('0');
     }
     format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
-
 }

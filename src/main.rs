@@ -1,6 +1,6 @@
+mod app;
 mod helper;
 mod sink_wrapper;
-mod app;
 
 use eframe::egui::ViewportBuilder;
 
