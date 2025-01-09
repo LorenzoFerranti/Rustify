@@ -1,4 +1,4 @@
-
+use crate::helper::formatted_duration;
 use crate::sink_wrapper::SinkWrapper;
 
 use std::fs::{read_dir, DirEntry};
@@ -7,10 +7,7 @@ use std::time::Duration;
 
 use rand::random;
 
-use eframe::egui::{
-    CentralPanel, Checkbox, Context, Image, ProgressBar, Rounding, Slider, TextEdit, TextStyle,
-    TextureOptions, ViewportBuilder,
-};
+use eframe::egui::{Align, CentralPanel, Checkbox, Context, Image, Layout, ProgressBar, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder};
 use eframe::{CreationContext, Frame};
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
@@ -95,10 +92,59 @@ impl RustifyApp {
             Some(res)
         }
     }
+
+    fn spawn_duration_slider(&mut self, ui: &mut Ui) {
+        ui.spacing_mut().slider_width = ui.available_width();
+        let response = ui.add(
+            Slider::new(&mut self.duration_slider, 0.0..=1.0)
+                .show_value(false)
+                .trailing_fill(true),
+        );
+        if response.drag_stopped() {
+            self.sink.jump(self.duration_slider);
+        }
+    }
 }
 
 impl eframe::App for RustifyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+
+        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+
+            let mut enable_duration_bar = true;
+
+            if let Some(track) = self.sink.get_current_track() {
+                let pos = self.sink.get_current_track_pos();
+                self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(format!("Track name: {} - ", track.name));
+                    ui.label(format!("Album: {} - ", track.album));
+                    ui.label(format!("Artist(s): {}", track.artist));
+                });
+            } else {
+                enable_duration_bar = false;
+                self.duration_slider = 0.0;
+            }
+
+
+            // slider
+            ui.horizontal(|ui| {
+                ui.label(formatted_duration(&self.sink.get_current_track_pos()));
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if let Some(track) = self.sink.get_current_track() {
+                        ui.label(formatted_duration(&track.duration));
+                    } else {
+                        ui.label("00:00");
+                    }
+                    ui.add_enabled_ui(enable_duration_bar, |ui| {
+                        self.spawn_duration_slider(ui);
+                    });
+                });
+
+            });
+
+        });
+
         CentralPanel::default().show(ctx, |ui| {
             if ui.button("Add random track to queue").clicked() {
                 self.append_random_from_path();
@@ -129,16 +175,7 @@ impl eframe::App for RustifyApp {
                 self.sink.set_paused(self.paused_input);
             }
 
-            let mut enable_duration_bar = true;
             if let Some(track) = self.sink.get_current_track() {
-                let pos = self.sink.get_current_track_pos();
-                self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
-                ui.label(format!("Track name: {}", track.name));
-                ui.label(format!("Album: {}", track.album));
-                ui.label(format!("Artist(s): {}", track.artist));
-                ui.label(format!("{:?}", pos));
-                ui.label(format!("{:?}", track.duration));
-
                 if let Some(color_image) = track.image {
                     let texture =
                         ctx.load_texture("my_texture", color_image, TextureOptions::default());
@@ -146,22 +183,7 @@ impl eframe::App for RustifyApp {
                 } else {
                     ui.label("NO image");
                 }
-            } else {
-                enable_duration_bar = false;
-                self.duration_slider = 0.0;
             }
-
-            ui.add_enabled_ui(enable_duration_bar, |ui| {
-                let response = ui.add(
-                    Slider::new(&mut self.duration_slider, 0.0..=1.0)
-                        .show_value(false)
-                        .trailing_fill(true),
-                );
-                if response.drag_stopped() {
-                    println!("{}", self.duration_slider);
-                    self.sink.jump(self.duration_slider);
-                }
-            });
 
         });
     }

@@ -2,9 +2,8 @@ use crate::sink_wrapper::Track;
 
 use eframe::egui::{Color32, ColorImage};
 use std::fs::{DirEntry, File};
-use std::path::PathBuf;
-
-use image::{DynamicImage, RgbaImage};
+use std::time::Duration;
+use image::RgbaImage;
 
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
@@ -106,4 +105,20 @@ fn get_color_image_from_rgba_image(image: RgbaImage) -> ColorImage {
         size: [width as usize, height as usize],
         pixels,
     }
+}
+
+pub fn formatted_duration(d: &Duration) -> String {
+    let tot = d.as_secs();
+    let sec = tot % 60;
+    let min = tot / 60;
+    let mut sec_padding = "".to_string();
+    let mut min_padding = "".to_string();
+    if sec < 10 {
+        sec_padding.push('0');
+    }
+    if min < 10 {
+        min_padding.push('0');
+    }
+    format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
+
 }
