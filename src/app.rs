@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use rand::random;
 
-use eframe::egui::{Align, CentralPanel, Checkbox, Context, Image, Layout, ProgressBar, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder};
+use eframe::egui::{Align, CentralPanel, Checkbox, Color32, Context, Image, Label, Layout, ProgressBar, RichText, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder};
 use eframe::{CreationContext, Frame};
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
@@ -114,12 +114,17 @@ impl eframe::App for RustifyApp {
             let mut enable_duration_bar = true;
 
             if let Some(track) = self.sink.get_current_track() {
+                // get pos
                 let pos = self.sink.get_current_track_pos();
                 self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
+                // name, artist and album
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("Track name: {} - ", track.name));
-                    ui.label(format!("Album: {} - ", track.album));
+                    let text = RichText::new(track.name).color(Color32::WHITE);
+                    ui.heading(text);
+                });
+                ui.horizontal_wrapped(|ui| {
                     ui.label(format!("Artist(s): {}", track.artist));
+                    ui.label(format!("Album: {} - ", track.album));
                 });
             } else {
                 enable_duration_bar = false;
@@ -130,6 +135,7 @@ impl eframe::App for RustifyApp {
             // slider
             ui.horizontal(|ui| {
                 ui.label(formatted_duration(&self.sink.get_current_track_pos()));
+                // layout needed for correct expansion of the slider
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if let Some(track) = self.sink.get_current_track() {
                         ui.label(formatted_duration(&track.duration));
