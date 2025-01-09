@@ -119,18 +119,20 @@ impl eframe::App for RustifyApp {
                 let pos = self.sink.get_current_track_pos();
                 self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
                 // name, artist and album
+                ui.add_space(5.0);
                 ui.horizontal_wrapped(|ui| {
                     let text = RichText::new(track.name).color(Color32::WHITE);
                     ui.heading(text);
                 });
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("{} - ", track.artist));
-                    ui.label(track.album);
+                    ui.label(format!("{} - {}", track.artist, track.album));
                 });
             } else {
                 enable_duration_bar = false;
                 self.duration_slider = 0.0;
             }
+
+            ui.add_space(5.0);
 
             // slider
             ui.horizontal(|ui| {
@@ -147,6 +149,9 @@ impl eframe::App for RustifyApp {
                     });
                 });
             });
+
+            ui.add_space(5.0);
+
         });
 
         CentralPanel::default().show(ctx, |ui| {
