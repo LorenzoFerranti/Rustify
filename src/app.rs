@@ -7,10 +7,7 @@ use std::time::Duration;
 
 use rand::random;
 
-use eframe::egui::{
-    Align, CentralPanel, Checkbox, Color32, Context, Image, Label, Layout, ProgressBar, RichText,
-    Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, ViewportBuilder,
-};
+use eframe::egui::{Align, Button, CentralPanel, Checkbox, Color32, Context, Direction, Image, Label, Layout, ProgressBar, RichText, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, Vec2, ViewportBuilder};
 use eframe::{CreationContext, Frame};
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
@@ -19,7 +16,7 @@ pub struct RustifyApp {
     path: String,
     sink: SinkWrapper,
     volume_input: f32,
-    paused_input: bool,
+    //paused_input: bool,
     duration_slider: f32,
 }
 
@@ -34,7 +31,7 @@ impl RustifyApp {
             path: MY_LOCAL_PATH.to_string(),
             sink: SinkWrapper::new(),
             volume_input: 1.0,
-            paused_input: false,
+            //paused_input: false,
             duration_slider: 0.0,
         }
     }
@@ -107,51 +104,70 @@ impl RustifyApp {
             self.sink.jump(self.duration_slider);
         }
     }
+
+    pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
+        let text = if self.sink.get_paused() {
+            "▶"
+        } else {
+            "⏸"
+        };
+        let response = ui.add_sized(
+            [40.0, 40.0],
+            Button::new(RichText::new(text).size(20.0))
+                //.min_size(Vec2::new(50.0, 50.0))
+                .rounding(7.0)
+        );
+        if response.clicked() {
+            self.sink.set_paused(!self.sink.get_paused())
+        }
+    }
 }
 
 impl eframe::App for RustifyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            let mut enable_duration_bar = true;
+            ui.vertical_centered(|ui| {
+                let mut enable_duration_bar = true;
 
-            if let Some(track) = self.sink.get_current_track() {
-                // get pos
-                let pos = self.sink.get_current_track_pos();
-                self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
-                // name, artist and album
+                if let Some(track) = self.sink.get_current_track() {
+                    // get pos
+                    let pos = self.sink.get_current_track_pos();
+                    self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
+                    // name, artist and album
+                    ui.add_space(5.0);
+                    ui.horizontal_wrapped(|ui| {
+                        let text = RichText::new(track.name).color(Color32::WHITE);
+                        ui.heading(text);
+                    });
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(format!("{} - {}", track.artist, track.album));
+                    });
+                } else {
+                    enable_duration_bar = false;
+                    self.duration_slider = 0.0;
+                }
+
                 ui.add_space(5.0);
-                ui.horizontal_wrapped(|ui| {
-                    let text = RichText::new(track.name).color(Color32::WHITE);
-                    ui.heading(text);
-                });
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("{} - {}", track.artist, track.album));
-                });
-            } else {
-                enable_duration_bar = false;
-                self.duration_slider = 0.0;
-            }
 
-            ui.add_space(5.0);
-
-            // slider
-            ui.horizontal(|ui| {
-                ui.label(formatted_duration(&self.sink.get_current_track_pos()));
-                // layout needed for correct expansion of the slider
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if let Some(track) = self.sink.get_current_track() {
-                        ui.label(formatted_duration(&track.duration));
-                    } else {
-                        ui.label("00:00");
-                    }
-                    ui.add_enabled_ui(enable_duration_bar, |ui| {
-                        self.spawn_duration_slider(ui);
+                // slider
+                ui.horizontal(|ui| {
+                    ui.label(formatted_duration(&self.sink.get_current_track_pos()));
+                    // layout needed for correct expansion of the slider
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if let Some(track) = self.sink.get_current_track() {
+                            ui.label(formatted_duration(&track.duration));
+                        } else {
+                            ui.label("00:00");
+                        }
+                        ui.add_enabled_ui(enable_duration_bar, |ui| {
+                            self.spawn_duration_slider(ui);
+                        });
                     });
                 });
+                self.spawn_pause_button(ui);
+
+                ui.add_space(5.0);
             });
-
-            ui.add_space(5.0);
-
         });
 
         CentralPanel::default().show(ctx, |ui| {
@@ -179,10 +195,11 @@ impl eframe::App for RustifyApp {
             if response.changed() {
                 self.sink.set_volume(self.volume_input);
             }
-            let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
-            if response.changed() {
-                self.sink.set_paused(self.paused_input);
-            }
+
+            // let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
+            // if response.changed() {
+            //     self.sink.set_paused(self.paused_input);
+            // }
 
             if let Some(track) = self.sink.get_current_track() {
                 if let Some(color_image) = track.image {

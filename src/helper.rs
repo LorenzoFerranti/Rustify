@@ -1,6 +1,6 @@
 use crate::sink_wrapper::Track;
 
-use eframe::egui::{Color32, ColorImage};
+use eframe::egui::{Button, Color32, ColorImage, Ui};
 use image::RgbaImage;
 use std::fs::{DirEntry, File};
 use std::time::Duration;
@@ -121,3 +121,5 @@ pub fn formatted_duration(d: &Duration) -> String {
     }
     format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }
+
+
