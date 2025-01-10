@@ -7,7 +7,10 @@ use std::time::Duration;
 
 use rand::random;
 
-use eframe::egui::{Align, Button, CentralPanel, Checkbox, Color32, Context, Direction, Image, Label, Layout, ProgressBar, RichText, Rounding, Slider, TextEdit, TextStyle, TextureOptions, TopBottomPanel, Ui, Vec2, ViewportBuilder};
+use eframe::egui::{
+    Align, Button, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit,
+    TextStyle, TextureOptions, TopBottomPanel, Ui,
+};
 use eframe::{CreationContext, Frame};
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
@@ -106,16 +109,12 @@ impl RustifyApp {
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-        let text = if self.sink.get_paused() {
-            "▶"
-        } else {
-            "⏸"
-        };
+        let text = if self.sink.get_paused() { "▶" } else { "⏸" };
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0))
                 //.min_size(Vec2::new(50.0, 50.0))
-                .rounding(7.0)
+                .rounding(7.0),
         );
         if response.clicked() {
             self.sink.set_paused(!self.sink.get_paused())

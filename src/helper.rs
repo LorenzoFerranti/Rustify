@@ -1,6 +1,6 @@
 use crate::sink_wrapper::Track;
 
-use eframe::egui::{Button, Color32, ColorImage, Ui};
+use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
 use std::fs::{DirEntry, File};
 use std::time::Duration;
@@ -53,7 +53,7 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
         track.image = get_color_image_from_visual(v);
     } else {
         track.image = get_color_image_from_directory(entry);
-        if let Some(_) = track.image {
+        if track.image.is_some() {
             println!("GOT IMAGE FROM DIR!!!!")
         }
     }
@@ -78,7 +78,7 @@ fn get_color_image_from_directory(entry: &DirEntry) -> Option<ColorImage> {
     path.pop();
     path.push("cover.jpg");
     println!("{:?}", path);
-    let mut dyn_img = image::open(&path).ok();
+    let dyn_img = image::open(&path).ok();
     match dyn_img {
         None => {
             println!("NONE");
@@ -121,5 +121,3 @@ pub fn formatted_duration(d: &Duration) -> String {
     }
     format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }
-
-
