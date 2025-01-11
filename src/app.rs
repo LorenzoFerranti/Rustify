@@ -112,8 +112,7 @@ impl RustifyApp {
         let text = if self.sink.get_paused() { "▶" } else { "⏸" };
         let response = ui.add_sized(
             [40.0, 40.0],
-            Button::new(RichText::new(text).size(20.0))
-                .rounding(7.0),
+            Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
             self.sink.set_paused(!self.sink.get_paused())
@@ -124,8 +123,7 @@ impl RustifyApp {
         let text = "s";
         let response = ui.add_sized(
             [40.0, 40.0],
-            Button::new(RichText::new(text).size(20.0))
-                .rounding(7.0),
+            Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
             self.sink.skip();
@@ -185,8 +183,7 @@ impl eframe::App for RustifyApp {
                         ui.horizontal(|ui| {
                             ui.label("Volume");
                             let response = ui.add(
-                                Slider::new(&mut self.volume_input, 0.0..=1.0)
-                                    .show_value(false)
+                                Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
                             );
                             if response.changed() {
                                 self.sink.set_volume(self.volume_input);
