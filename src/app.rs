@@ -113,11 +113,22 @@ impl RustifyApp {
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0))
-                //.min_size(Vec2::new(50.0, 50.0))
                 .rounding(7.0),
         );
         if response.clicked() {
             self.sink.set_paused(!self.sink.get_paused())
+        }
+    }
+
+    pub fn spawn_skip_button(&mut self, ui: &mut Ui) {
+        let text = "s";
+        let response = ui.add_sized(
+            [40.0, 40.0],
+            Button::new(RichText::new(text).size(20.0))
+                .rounding(7.0),
+        );
+        if response.clicked() {
+            self.sink.skip();
         }
     }
 }
@@ -163,7 +174,28 @@ impl eframe::App for RustifyApp {
                         });
                     });
                 });
-                self.spawn_pause_button(ui);
+                // TODO: fix this alignment
+                // ui.horizontal(|ui| {
+                //     self.spawn_pause_button(ui);
+                //     self.spawn_skip_button(ui);
+                // });
+                ui.columns(3, |cols| {
+                    cols[0].vertical_centered(|ui| {
+                        ui.add_space(10.0);
+                        ui.horizontal(|ui| {
+                            ui.label("Volume");
+                            let response = ui.add(
+                                Slider::new(&mut self.volume_input, 0.0..=1.0)
+                                    .show_value(false)
+                            );
+                            if response.changed() {
+                                self.sink.set_volume(self.volume_input);
+                            }
+                        });
+                    });
+                    cols[1].vertical_centered(|ui| self.spawn_pause_button(ui));
+                    cols[2].vertical_centered(|ui| self.spawn_skip_button(ui));
+                });
 
                 ui.add_space(5.0);
             });
@@ -172,9 +204,6 @@ impl eframe::App for RustifyApp {
         CentralPanel::default().show(ctx, |ui| {
             if ui.button("Add random track to queue").clicked() {
                 self.append_random_from_path();
-            }
-            if ui.button("Skip track").clicked() {
-                self.sink.skip();
             }
             if ui.button("Clear queue").clicked() {
                 self.sink.clear();
@@ -188,12 +217,6 @@ impl eframe::App for RustifyApp {
                     .font(TextStyle::Monospace),
             );
             ui.add_space(15.0);
-
-            ui.label("Volume");
-            let response = ui.add(Slider::new(&mut self.volume_input, 0.0..=1.0));
-            if response.changed() {
-                self.sink.set_volume(self.volume_input);
-            }
 
             // let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
             // if response.changed() {
