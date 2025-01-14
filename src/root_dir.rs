@@ -1,4 +1,4 @@
-use std::fs::{read_dir, DirEntry};
+use std::fs::{read_dir};
 use std::path::{Path, PathBuf};
 
 pub struct MusicDir {
@@ -7,10 +7,30 @@ pub struct MusicDir {
     pub tracks: Vec<PathBuf>
 }
 
+impl MusicDir {
+    pub fn new(path: PathBuf) -> Self {
+        println!("music dir: {:?}", path);
+        let tracks = get_mp3s(&path).unwrap_or(vec![]);
+        let sub_dirs = get_sub_dirs(&path).unwrap_or(vec![]);
+        Self {
+            path,
+            sub_dirs,
+            tracks,
+        }
+    }
+}
+
 pub struct RootDir {
     root: MusicDir
 }
-
+impl RootDir {
+    pub fn new(root: PathBuf) -> Self {
+        let music_dir = MusicDir::new(root);
+        Self {
+            root: music_dir,
+        }
+    }
+}
 
 fn get_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
     let mut res = vec![];
@@ -32,14 +52,14 @@ fn get_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
     }
 }
 
-fn get_sub_dirs(path: &Path) -> Option<Vec<PathBuf>> {
+fn get_sub_dirs(path: &Path) -> Option<Vec<MusicDir>> {
     let mut res = vec![];
     let read_dir = read_dir(path).ok()?;
 
     for entry in read_dir.flatten() {
         let path_buf = entry.path();
         if path_buf.is_dir() {
-            res.push(path_buf);
+            res.push(MusicDir::new(path_buf));
         }
     }
 

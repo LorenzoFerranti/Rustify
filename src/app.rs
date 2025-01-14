@@ -2,6 +2,7 @@ use crate::helper::formatted_duration;
 use crate::sink_wrapper::SinkWrapper;
 
 use std::fs::{read_dir, DirEntry};
+use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -12,6 +13,7 @@ use eframe::egui::{
     TextStyle, TextureOptions, TopBottomPanel, Ui,
 };
 use eframe::{CreationContext, Frame};
+use crate::root_dir::RootDir;
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
@@ -25,6 +27,10 @@ pub struct RustifyApp {
 
 impl RustifyApp {
     pub fn new(cc: &CreationContext) -> Self {
+        // test
+        let root_dir = RootDir::new(PathBuf::from(MY_LOCAL_PATH));
+        println!("Root dir finished");
+
         let ctx_clone = cc.egui_ctx.clone();
         std::thread::spawn(move || loop {
             sleep(Duration::from_millis(500));
