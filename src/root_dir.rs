@@ -18,6 +18,10 @@ impl MusicDir {
             tracks,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.tracks.is_empty() && self.sub_dirs.is_empty()
+    }
 }
 
 pub struct RootDir {
@@ -59,7 +63,10 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<MusicDir>> {
     for entry in read_dir.flatten() {
         let path_buf = entry.path();
         if path_buf.is_dir() {
-            res.push(MusicDir::new(path_buf));
+            let music_dir = MusicDir::new(path_buf);
+            if !music_dir.is_empty() {
+                res.push(music_dir);
+            }
         }
     }
 
