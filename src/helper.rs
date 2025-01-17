@@ -1,8 +1,9 @@
-use crate::sink_wrapper::Track;
+use crate::sink_wrapper::TrackData;
 
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
 use std::fs::{DirEntry, File};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use symphonia::core::formats::FormatOptions;
@@ -11,9 +12,8 @@ use symphonia::core::meta::{MetadataOptions, StandardTagKey, Visual};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
-pub fn get_track(entry: &DirEntry) -> Option<Track> {
-    let path_buf = entry.path();
-    let file = File::open(path_buf).ok()?;
+pub fn get_track_data(path_buf: PathBuf) -> Option<TrackData> {
+    let file = File::open(&path_buf).ok()?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
     let probe = get_probe();
@@ -33,7 +33,7 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
     // get metadata
     let binding = probed.metadata.get()?;
     let current_metadata = binding.current()?;
-    let mut track = Track::default();
+    let mut track = TrackData::default();
 
     // read tags
     for tag in current_metadata.tags() {
@@ -52,7 +52,7 @@ pub fn get_track(entry: &DirEntry) -> Option<Track> {
     if let Some(v) = current_metadata.visuals().first() {
         track.image = get_color_image_from_visual(v);
     } else {
-        track.image = get_color_image_from_directory(entry);
+        track.image = get_color_image_from_directory(path_buf);
         if track.image.is_some() {
             println!("GOT IMAGE FROM DIR!!!!")
         }
@@ -73,18 +73,17 @@ fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
     Some(image.to_rgba8())
 }
 
-fn get_color_image_from_directory(entry: &DirEntry) -> Option<ColorImage> {
-    let mut path = entry.path();
-    path.pop();
-    path.push("cover.jpg");
-    println!("{:?}", path);
-    let dyn_img = image::open(&path).ok();
+fn get_color_image_from_directory(mut path_buf: PathBuf) -> Option<ColorImage> {
+    path_buf.pop();
+    path_buf.push("cover.jpg");
+    println!("{:?}", path_buf);
+    let dyn_img = image::open(&path_buf).ok();
     match dyn_img {
         None => {
             println!("NONE");
-            path.pop();
-            path.push("cover.png");
-            let rgba_img = image::open(&path).ok()?.to_rgba8();
+            path_buf.pop();
+            path_buf.push("cover.png");
+            let rgba_img = image::open(&path_buf).ok()?.to_rgba8();
             Some(get_color_image_from_rgba_image(rgba_img))
         }
         Some(di) => {
