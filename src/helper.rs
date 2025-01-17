@@ -2,7 +2,7 @@ use crate::sink_wrapper::TrackData;
 
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
-use std::fs::{DirEntry, File};
+use std::fs::File;
 use std::path::PathBuf;
 use std::time::Duration;
 

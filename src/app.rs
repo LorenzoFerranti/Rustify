@@ -6,14 +6,13 @@ use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
 
-use rand::random;
 
+use crate::root_dir::RootDir;
 use eframe::egui::{
     Align, Button, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit,
     TextStyle, TextureOptions, TopBottomPanel, Ui,
 };
 use eframe::{CreationContext, Frame};
-use crate::root_dir::RootDir;
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
@@ -240,4 +239,3 @@ impl eframe::App for RustifyApp {
         });
     }
 }
-

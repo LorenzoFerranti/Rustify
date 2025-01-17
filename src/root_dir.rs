@@ -1,19 +1,19 @@
-use std::fs::{read_dir};
+use rand::random;
+use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use rand::random;
 
 pub struct MusicDir {
     pub path: PathBuf,
     pub sub_dirs: Vec<Rc<MusicDir>>,
-    pub track_paths: Vec<PathBuf>
+    pub track_paths: Vec<PathBuf>,
 }
 
 impl MusicDir {
     pub fn new(path: PathBuf) -> Self {
         println!("music dir: {:?}", path);
-        let tracks = get_mp3s(&path).unwrap_or(vec![]);
-        let sub_dirs = get_sub_dirs(&path).unwrap_or(vec![]);
+        let tracks = get_mp3s(&path).unwrap_or_default();
+        let sub_dirs = get_sub_dirs(&path).unwrap_or_default();
         Self {
             path,
             sub_dirs,
@@ -46,14 +46,12 @@ impl MusicDir {
 }
 
 pub struct RootDir {
-    pub root: Rc<MusicDir>
+    pub root: Rc<MusicDir>,
 }
 impl RootDir {
     pub fn new(root: PathBuf) -> Self {
         let root = Rc::new(MusicDir::new(root));
-        Self {
-            root
-        }
+        Self { root }
     }
 }
 

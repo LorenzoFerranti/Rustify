@@ -1,15 +1,15 @@
 use crate::helper;
 
 use std::collections::VecDeque;
-use std::fs::{DirEntry, File};
+use std::fs::File;
 use std::io::BufReader;
 use std::rc::Rc;
 use std::time::Duration;
 
 use eframe::egui::ColorImage;
 
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 use crate::root_dir::MusicDir;
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 
 #[derive(Clone)]
 pub struct TrackData {
@@ -80,7 +80,8 @@ impl SinkWrapper {
                 let file = BufReader::new(File::open(&path).unwrap());
                 let source = Decoder::new(file).unwrap();
 
-                let mut track_data = helper::get_track_data(path).unwrap_or_else(TrackData::default);
+                let mut track_data =
+                    helper::get_track_data(path).unwrap_or_else(TrackData::default);
                 track_data.duration = source.total_duration().unwrap_or_else(|| {
                     println!("No duration!!");
                     Duration::from_secs(1)
