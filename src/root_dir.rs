@@ -77,9 +77,8 @@ fn get_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
 
 fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
     let mut res = vec![];
-    let read_dir = read_dir(path).ok()?;
 
-    for entry in read_dir.flatten() {
+    for entry in read_dir(path).ok()?.flatten() {
         let path_buf = entry.path();
         if path_buf.is_dir() {
             let music_dir_ptr = Rc::new(MusicDir::new(path_buf));

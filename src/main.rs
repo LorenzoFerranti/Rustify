@@ -1,7 +1,7 @@
 mod app;
 mod helper;
 mod root_dir;
-mod sink_wrapper;
+mod music_player;
 
 use eframe::egui::ViewportBuilder;
 

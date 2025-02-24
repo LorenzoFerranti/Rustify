@@ -1,4 +1,4 @@
-use crate::sink_wrapper::TrackData;
+use crate::music_player::TrackData;
 
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;

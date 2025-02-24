@@ -1,11 +1,10 @@
 use crate::helper::formatted_duration;
-use crate::sink_wrapper::SinkWrapper;
+use crate::music_player::MusicPlayer;
 
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
-
 
 use crate::root_dir::RootDir;
 use eframe::egui::{
@@ -18,9 +17,8 @@ const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
 pub struct RustifyApp {
     path: String,
-    sink: SinkWrapper,
+    sink: MusicPlayer,
     volume_input: f32,
-    //paused_input: bool,
     duration_slider: f32,
 }
 
@@ -35,69 +33,12 @@ impl RustifyApp {
 
         Self {
             path: MY_LOCAL_PATH.to_string(),
-            sink: SinkWrapper::new(),
+            sink: MusicPlayer::new(),
             volume_input: 1.0,
             //paused_input: false,
             duration_slider: 0.0,
         }
     }
-
-    // fn append_random_from_path(&mut self) {
-    //     let mut current_path = self.path.clone();
-    //     loop {
-    //         if let Some(v) = Self::get_mp3_dir_entries(&current_path) {
-    //             self.sink.append(&v[get_random_index(&v)]);
-    //             return;
-    //         }
-    //         // no .mp3 files
-    //         if let Some(v) = Self::get_dir_paths(&current_path) {
-    //             current_path = v[get_random_index(&v)].clone();
-    //         } else {
-    //             println!("Error: no mp3 and no directories");
-    //             return;
-    //         }
-    //     }
-    // }
-
-    // fn get_mp3_dir_entries(path: &str) -> Option<Vec<DirEntry>> {
-    //     let mut res = vec![];
-    //     let dir_iter = read_dir(path).ok()?;
-    //
-    //     for entry in dir_iter.flatten() {
-    //         let path_buf = entry.path();
-    //         if let Some(ext) = path_buf.extension() {
-    //             if ext == "mp3" {
-    //                 res.push(entry);
-    //             }
-    //         }
-    //     }
-    //
-    //     if res.is_empty() {
-    //         None
-    //     } else {
-    //         Some(res)
-    //     }
-    // }
-
-    // fn get_dir_paths(path: &str) -> Option<Vec<String>> {
-    //     let mut res = vec![];
-    //     let dir_iter = read_dir(path).ok()?;
-    //
-    //     for entry in dir_iter.flatten() {
-    //         let path_buf = entry.path();
-    //         if path_buf.is_dir() {
-    //             if let Some(s) = path_buf.to_str() {
-    //                 res.push(s.to_string());
-    //             }
-    //         }
-    //     }
-    //
-    //     if res.is_empty() {
-    //         None
-    //     } else {
-    //         Some(res)
-    //     }
-    // }
 
     fn spawn_duration_slider(&mut self, ui: &mut Ui) {
         ui.spacing_mut().slider_width = ui.available_width();
@@ -123,7 +64,7 @@ impl RustifyApp {
     }
 
     pub fn spawn_skip_button(&mut self, ui: &mut Ui) {
-        let text = "s";
+        let text = "⏭";
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),

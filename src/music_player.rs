@@ -32,7 +32,7 @@ impl TrackData {
     }
 }
 
-pub struct SinkWrapper {
+pub struct MusicPlayer {
     output_stream: OutputStream,
     output_stream_handle: OutputStreamHandle,
     sink: Sink,
@@ -40,7 +40,7 @@ pub struct SinkWrapper {
     playlist: Option<Rc<MusicDir>>, // TODO: change to Playlist struct
 }
 
-impl SinkWrapper {
+impl MusicPlayer {
     pub fn new() -> Self {
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&output_stream_handle).unwrap();
@@ -57,22 +57,6 @@ impl SinkWrapper {
         self.sink.clear();
         self.track_queue.clear();
     }
-
-    // pub fn append(&mut self, entry: &DirEntry) {
-    //     let path_buf = entry.path();
-    //     let file = BufReader::new(File::open(path_buf).unwrap());
-    //     let source = Decoder::new(file).unwrap();
-    //
-    //     let mut track = helper::get_track_data(entry).unwrap_or_else(TrackData::default);
-    //     track.duration = source.total_duration().unwrap_or_else(|| {
-    //         println!("No duration!!");
-    //         Duration::from_secs(1)
-    //     });
-    //
-    //     self.delete_old_tracks();
-    //     self.track_queue.push_back(track);
-    //     self.sink.append(source);
-    // }
 
     fn append_random(&mut self) {
         if let Some(md_pt) = &self.playlist {
