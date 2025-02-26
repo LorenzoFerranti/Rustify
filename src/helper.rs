@@ -110,15 +110,7 @@ pub fn formatted_duration(d: &Duration) -> String {
     let tot = d.as_secs();
     let sec = tot % 60;
     let min = tot / 60;
-    let sec_padding = if sec < 10 {
-        "0"
-    } else {
-        ""
-    };
-    let min_padding = if min < 10 {
-        "0"
-    } else {
-        ""
-    };
+    let sec_padding = if sec < 10 { "0" } else { "" };
+    let min_padding = if min < 10 { "0" } else { "" };
     format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }

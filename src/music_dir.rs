@@ -1,6 +1,6 @@
+use rand::random;
 use std::cell::RefCell;
 use std::ffi::OsString;
-use rand::random;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -42,7 +42,7 @@ impl MusicDir {
         if self.has_sub_dirs() {
             let n = get_random_index(&self.sub_dirs);
             let relative_path = self.sub_dirs[n].get_random_track_relative_path()?;
-            return Some(PathBuf::from(&self.name).join(relative_path))
+            return Some(PathBuf::from(&self.name).join(relative_path));
         }
         None
     }

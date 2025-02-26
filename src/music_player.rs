@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use eframe::egui::ColorImage;
 
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 use crate::root_music_dir::RootMusicDir;
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 
 #[derive(Clone)]
 pub struct TrackData {

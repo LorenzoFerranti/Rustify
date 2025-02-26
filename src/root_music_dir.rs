@@ -1,6 +1,6 @@
+use crate::music_dir::MusicDir;
 use std::path::PathBuf;
 use std::rc::Rc;
-use crate::music_dir::MusicDir;
 
 pub struct RootMusicDir {
     parent_absolute_path: PathBuf,
@@ -16,6 +16,9 @@ impl RootMusicDir {
     }
 
     pub fn get_random_track_absolute_path(&self) -> Option<PathBuf> {
-        Some(self.parent_absolute_path.join(self.root.get_random_track_relative_path()?))
+        Some(
+            self.parent_absolute_path
+                .join(self.root.get_random_track_relative_path()?),
+        )
     }
 }

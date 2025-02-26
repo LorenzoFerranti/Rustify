@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
+use crate::root_music_dir::RootMusicDir;
 use eframe::egui::{
     Align, Button, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit,
     TextStyle, TextureOptions, TopBottomPanel, Ui,
 };
 use eframe::{CreationContext, Frame};
-use crate::root_music_dir::RootMusicDir;
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
@@ -51,13 +51,18 @@ impl RustifyApp {
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-        let text = if self.music_player.get_paused() { "▶" } else { "⏸" };
+        let text = if self.music_player.get_paused() {
+            "▶"
+        } else {
+            "⏸"
+        };
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-            self.music_player.set_paused(!self.music_player.get_paused())
+            self.music_player
+                .set_paused(!self.music_player.get_paused())
         }
     }
 
@@ -101,7 +106,9 @@ impl eframe::App for RustifyApp {
 
                 // slider
                 ui.horizontal(|ui| {
-                    ui.label(formatted_duration(&self.music_player.get_current_track_pos()));
+                    ui.label(formatted_duration(
+                        &self.music_player.get_current_track_pos(),
+                    ));
                     // layout needed for correct expansion of the slider
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if let Some(track) = self.music_player.get_current_track() {
@@ -143,7 +150,8 @@ impl eframe::App for RustifyApp {
                     .font(TextStyle::Monospace),
             );
             if ui.button("Play root").clicked() {
-                self.music_player.set_playlist(RootMusicDir::new(PathBuf::from(self.path.clone())));
+                self.music_player
+                    .set_playlist(RootMusicDir::new(PathBuf::from(self.path.clone())));
             }
             ui.add_space(15.0);
 
