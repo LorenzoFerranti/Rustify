@@ -1,7 +1,8 @@
 mod app;
 mod helper;
-mod root_dir;
+mod music_dir;
 mod music_player;
+mod root_music_dir;
 
 use eframe::egui::ViewportBuilder;
 

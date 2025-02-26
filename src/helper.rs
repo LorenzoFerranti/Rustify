@@ -110,13 +110,15 @@ pub fn formatted_duration(d: &Duration) -> String {
     let tot = d.as_secs();
     let sec = tot % 60;
     let min = tot / 60;
-    let mut sec_padding = "".to_string();
-    let mut min_padding = "".to_string();
-    if sec < 10 {
-        sec_padding.push('0');
-    }
-    if min < 10 {
-        min_padding.push('0');
-    }
+    let sec_padding = if sec < 10 {
+        "0"
+    } else {
+        ""
+    };
+    let min_padding = if min < 10 {
+        "0"
+    } else {
+        ""
+    };
     format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }

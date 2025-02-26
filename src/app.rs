@@ -2,22 +2,21 @@ use crate::helper::formatted_duration;
 use crate::music_player::MusicPlayer;
 
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
 
-use crate::root_dir::RootDir;
 use eframe::egui::{
     Align, Button, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit,
     TextStyle, TextureOptions, TopBottomPanel, Ui,
 };
 use eframe::{CreationContext, Frame};
+use crate::root_music_dir::RootMusicDir;
 
 const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
 pub struct RustifyApp {
     path: String,
-    sink: MusicPlayer,
+    music_player: MusicPlayer,
     volume_input: f32,
     duration_slider: f32,
 }
@@ -33,9 +32,8 @@ impl RustifyApp {
 
         Self {
             path: MY_LOCAL_PATH.to_string(),
-            sink: MusicPlayer::new(),
+            music_player: MusicPlayer::new(),
             volume_input: 1.0,
-            //paused_input: false,
             duration_slider: 0.0,
         }
     }
@@ -48,18 +46,18 @@ impl RustifyApp {
                 .trailing_fill(true),
         );
         if response.drag_stopped() {
-            self.sink.jump(self.duration_slider);
+            self.music_player.jump(self.duration_slider);
         }
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-        let text = if self.sink.get_paused() { "▶" } else { "⏸" };
+        let text = if self.music_player.get_paused() { "▶" } else { "⏸" };
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-            self.sink.set_paused(!self.sink.get_paused())
+            self.music_player.set_paused(!self.music_player.get_paused())
         }
     }
 
@@ -70,7 +68,7 @@ impl RustifyApp {
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-            self.sink.skip();
+            self.music_player.skip();
         }
     }
 }
@@ -81,9 +79,9 @@ impl eframe::App for RustifyApp {
             ui.vertical_centered(|ui| {
                 let mut enable_duration_bar = true;
 
-                if let Some(track) = self.sink.get_current_track() {
+                if let Some(track) = self.music_player.get_current_track() {
                     // get pos
-                    let pos = self.sink.get_current_track_pos();
+                    let pos = self.music_player.get_current_track_pos();
                     self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
                     // name, artist and album
                     ui.add_space(5.0);
@@ -103,10 +101,10 @@ impl eframe::App for RustifyApp {
 
                 // slider
                 ui.horizontal(|ui| {
-                    ui.label(formatted_duration(&self.sink.get_current_track_pos()));
+                    ui.label(formatted_duration(&self.music_player.get_current_track_pos()));
                     // layout needed for correct expansion of the slider
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if let Some(track) = self.sink.get_current_track() {
+                        if let Some(track) = self.music_player.get_current_track() {
                             ui.label(formatted_duration(&track.duration));
                         } else {
                             ui.label("00:00");
@@ -116,11 +114,6 @@ impl eframe::App for RustifyApp {
                         });
                     });
                 });
-                // TODO: fix this alignment
-                // ui.horizontal(|ui| {
-                //     self.spawn_pause_button(ui);
-                //     self.spawn_skip_button(ui);
-                // });
                 ui.columns(3, |cols| {
                     cols[0].vertical_centered(|ui| {
                         ui.add_space(10.0);
@@ -130,7 +123,7 @@ impl eframe::App for RustifyApp {
                                 Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
                             );
                             if response.changed() {
-                                self.sink.set_volume(self.volume_input);
+                                self.music_player.set_volume(self.volume_input);
                             }
                         });
                     });
@@ -143,14 +136,6 @@ impl eframe::App for RustifyApp {
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            // if ui.button("Add random track to queue").clicked() {
-            //     self.append_random_from_path();
-            // }
-            // if ui.button("Clear queue").clicked() {
-            //     self.sink.clear();
-            // }
-            // ui.add_space(15.0);
-
             ui.label("Root path");
             ui.add(
                 TextEdit::singleline(&mut self.path)
@@ -158,17 +143,11 @@ impl eframe::App for RustifyApp {
                     .font(TextStyle::Monospace),
             );
             if ui.button("Play root").clicked() {
-                let r = RootDir::new(PathBuf::from(self.path.clone()));
-                self.sink.set_playlist(Rc::clone(&r.root));
+                self.music_player.set_playlist(RootMusicDir::new(PathBuf::from(self.path.clone())));
             }
             ui.add_space(15.0);
 
-            // let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
-            // if response.changed() {
-            //     self.sink.set_paused(self.paused_input);
-            // }
-
-            if let Some(track) = self.sink.get_current_track() {
+            if let Some(track) = self.music_player.get_current_track() {
                 if let Some(color_image) = track.image {
                     let texture =
                         ctx.load_texture("my_texture", color_image, TextureOptions::default());

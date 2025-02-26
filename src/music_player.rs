@@ -3,13 +3,12 @@ use crate::helper;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::BufReader;
-use std::rc::Rc;
 use std::time::Duration;
 
 use eframe::egui::ColorImage;
 
-use crate::root_dir::MusicDir;
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
+use crate::root_music_dir::RootMusicDir;
 
 #[derive(Clone)]
 pub struct TrackData {
@@ -37,7 +36,7 @@ pub struct MusicPlayer {
     output_stream_handle: OutputStreamHandle,
     sink: Sink,
     track_queue: VecDeque<TrackData>,
-    playlist: Option<Rc<MusicDir>>, // TODO: change to Playlist struct
+    playlist: Option<RootMusicDir>, // TODO: change to Playlist
 }
 
 impl MusicPlayer {
@@ -60,7 +59,7 @@ impl MusicPlayer {
 
     fn append_random(&mut self) {
         if let Some(md_pt) = &self.playlist {
-            if let Some(path) = md_pt.get_random_track_path() {
+            if let Some(path) = md_pt.get_random_track_absolute_path() {
                 let file = BufReader::new(File::open(&path).unwrap());
                 let source = Decoder::new(file).unwrap();
 
@@ -129,8 +128,8 @@ impl MusicPlayer {
         self.sink.try_seek(d).ok()
     }
 
-    // TODO: change to Playlist struct
-    pub fn set_playlist(&mut self, md_ptr: Rc<MusicDir>) {
+    // TODO: change to Playlist
+    pub fn set_playlist(&mut self, md_ptr: RootMusicDir) {
         self.clear();
         self.playlist = Some(md_ptr);
         self.set_paused(false);
