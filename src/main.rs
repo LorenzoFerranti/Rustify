@@ -1,12 +1,12 @@
-mod app;
 mod helper;
 mod music_dir;
 mod music_player;
 mod root_music_dir;
+mod ui;
 
 use eframe::egui::ViewportBuilder;
 
-use crate::app::RustifyApp;
+use ui::app::RustifyApp;
 
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
