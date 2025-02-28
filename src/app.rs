@@ -18,16 +18,24 @@ use crate::root_music_dir::RootMusicDir;
 
 const DATA_RELATIVE_PATH: &str = "data.json";
 
-#[derive(Default, Debug, Serialize, Deserialize)]
-struct RustifyData {
+#[derive(Debug, Serialize, Deserialize)]
+struct RustifyOptions {
     root_path: String,
     volume: f32,
 }
 
+impl Default for RustifyOptions {
+    fn default() -> Self {
+        Self {
+            root_path: "".to_string(),
+            volume: 1.0,
+        }
+    }
+}
+
 pub struct RustifyApp {
-    root_path: String,
+    options: RustifyOptions,
     music_player: MusicPlayer,
-    volume_input: f32,
     duration_slider: f32,
 }
 
@@ -41,39 +49,33 @@ impl RustifyApp {
         });
 
         // read data
-        let data = match Self::get_data() {
-            None => {
-                let new_data = RustifyData::default();
-                Self::write_data(&new_data);
-                new_data
-            }
-            Some(data) => {
-                data
-            }
-        };
+        let options = Self::read_options().unwrap_or_else(|| {
+            let new_data = RustifyOptions::default();
+            Self::write_options(&new_data);
+            new_data
+        });
 
         Self {
-            root_path: data.root_path,
+            options,
             music_player: MusicPlayer::new(),
-            volume_input: data.volume,
             duration_slider: 0.0,
         }
     }
 
-    fn get_data() -> Option<RustifyData> {
+    fn read_options() -> Option<RustifyOptions> {
         let file = File::open(DATA_RELATIVE_PATH).ok()?;
-        let data : RustifyData = serde_json::from_reader(&file).ok()?;
+        let data : RustifyOptions = serde_json::from_reader(&file).ok()?;
         Some(data)
     }
 
-    fn write_data(data: &RustifyData) {
+    fn write_options(data: &RustifyOptions) {
         let json_string = serde_json::to_string(data).unwrap();
         let mut file = File::create(DATA_RELATIVE_PATH).unwrap();
         file.write((&json_string).as_ref()).expect("Failed to write file");
     }
 
-    fn save_data(&self) {
-        Self::write_data(&RustifyData{ root_path: self.root_path.clone(), volume: self.volume_input })
+    fn save_options(&self) {
+        Self::write_options(&self.options);
     }
 
     fn spawn_duration_slider(&mut self, ui: &mut Ui) {
@@ -165,13 +167,13 @@ impl eframe::App for RustifyApp {
                         ui.horizontal(|ui| {
                             ui.label("Volume");
                             let response = ui.add(
-                                Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
+                                Slider::new(&mut self.options.volume, 0.0..=1.0).show_value(false),
                             );
                             if response.changed() {
-                                self.music_player.set_volume(self.volume_input);
+                                self.music_player.set_volume(self.options.volume);
                             }
                             if response.drag_stopped() {
-                                self.save_data();
+                                self.save_options();
                             }
                         });
                     });
@@ -186,14 +188,14 @@ impl eframe::App for RustifyApp {
         CentralPanel::default().show(ctx, |ui| {
             ui.label("Root path");
             ui.add(
-                TextEdit::singleline(&mut self.root_path)
+                TextEdit::singleline(&mut self.options.root_path)
                     .desired_width(f32::INFINITY)
                     .font(TextStyle::Monospace),
             );
             if ui.button("Play root").clicked() {
-                self.save_data();
+                self.save_options();
                 self.music_player
-                    .set_playlist(RootMusicDir::new(PathBuf::from(self.root_path.clone())));
+                    .set_playlist(RootMusicDir::new(PathBuf::from(&self.options.root_path)));
             }
             ui.add_space(15.0);
 

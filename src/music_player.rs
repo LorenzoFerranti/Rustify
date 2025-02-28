@@ -32,8 +32,8 @@ impl TrackData {
 }
 
 pub struct MusicPlayer {
-    output_stream: OutputStream,
-    output_stream_handle: OutputStreamHandle,
+    _output_stream: OutputStream,
+    _output_stream_handle: OutputStreamHandle,
     sink: Sink,
     track_queue: VecDeque<TrackData>,
     playlist: Option<RootMusicDir>, // TODO: change to Playlist
@@ -44,8 +44,8 @@ impl MusicPlayer {
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&output_stream_handle).unwrap();
         Self {
-            output_stream,
-            output_stream_handle,
+            _output_stream: output_stream,
+            _output_stream_handle: output_stream_handle,
             sink,
             track_queue: VecDeque::new(),
             playlist: None,
@@ -57,7 +57,7 @@ impl MusicPlayer {
         self.track_queue.clear();
     }
 
-    fn append_random(&mut self) {
+    fn append_random(&mut self) -> Option<()> {
         if let Some(md_pt) = &self.playlist {
             if let Some(path) = md_pt.get_random_track_absolute_path() {
                 let file = BufReader::new(File::open(&path).unwrap());
@@ -73,8 +73,10 @@ impl MusicPlayer {
                 self.delete_old_tracks();
                 self.track_queue.push_back(track_data);
                 self.sink.append(source);
+                return Some(());
             }
         }
+        None
     }
 
     pub fn skip(&mut self) {
@@ -102,7 +104,9 @@ impl MusicPlayer {
         self.delete_old_tracks();
         if self.playlist.is_some() {
             while self.sink.len() < 3 {
-                self.append_random();
+                if let None = self.append_random() {
+                    break;
+                }
             }
         }
     }

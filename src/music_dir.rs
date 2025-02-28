@@ -1,5 +1,4 @@
 use rand::random;
-use std::cell::RefCell;
 use std::ffi::OsString;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
@@ -74,7 +73,7 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
     for entry in read_dir(path).ok()?.flatten() {
         let path_buf = entry.path();
         if path_buf.is_dir() {
-            let mut music_dir_ptr = Rc::new(MusicDir::new(path_buf));
+            let music_dir_ptr = Rc::new(MusicDir::new(path_buf));
             if !music_dir_ptr.is_empty() {
                 res.push(music_dir_ptr);
             }
