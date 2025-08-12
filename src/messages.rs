@@ -1,9 +1,9 @@
+use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
 use eframe::egui::Context;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use crate::settings::Settings;
 
 #[derive(Clone)]
 pub enum Request {
@@ -22,6 +22,6 @@ pub enum Event {
     NowPlaying,
     NowPaused,
     ProgressUpdate(Duration), // [0, 1], always forward
-    JumpedTo(Duration), // [0, 1]
-    NewSettings(Settings)
+    JumpedTo(Duration),       // [0, 1]
+    NewSettings(Settings),
 }

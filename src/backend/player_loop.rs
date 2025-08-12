@@ -16,9 +16,8 @@ pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
     // track metadata queue
     let mut track_metadata_queue: VecDeque<Arc<TrackMetaData>> = VecDeque::new();
 
-
-    let stream_handle = rodio::OutputStreamBuilder::open_default_stream()
-        .expect("open default audio stream");
+    let stream_handle =
+        rodio::OutputStreamBuilder::open_default_stream().expect("open default audio stream");
     let sink = Sink::connect_new(&stream_handle.mixer());
 
     loop {
@@ -91,7 +90,9 @@ fn handle_request(
                 println!("JUMP TO {progress_seconds:?}");
                 match sink.try_seek(progress_seconds) {
                     Ok(_) => {
-                        event_sender.send(Event::JumpedTo(progress_seconds)).unwrap();
+                        event_sender
+                            .send(Event::JumpedTo(progress_seconds))
+                            .unwrap();
                     }
                     Err(e) => {
                         println!("ERRORE IN SEEK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");

@@ -29,7 +29,6 @@ impl App {
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-
         let text = match self.pause_button_action {
             PauseButtonAction::Pause => "⏸",
             PauseButtonAction::Play => "▶",

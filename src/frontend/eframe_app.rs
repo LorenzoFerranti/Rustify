@@ -253,7 +253,6 @@ impl eframe::App for App {
     }
 }
 
-
 pub fn formatted_duration(d: &Duration) -> String {
     let tot = d.as_secs();
     let sec = tot % 60;

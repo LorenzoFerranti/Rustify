@@ -4,11 +4,11 @@ use std::thread;
 use crate::backend::music_dir::MusicDir;
 use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
 
+use crate::messages::Event;
 use crate::settings::Settings;
 use crate::{messages, settings};
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use eframe::egui::Context;
-use crate::messages::Event;
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
@@ -56,11 +56,12 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
 
     // read settings and send them to frontend
     let settings = settings::read();
-    event_sender.send(Event::NewSettings(settings.clone())).expect("Error in send");
+    event_sender
+        .send(Event::NewSettings(settings.clone()))
+        .expect("Error in send");
 
     // data
     let mut data = ThreadData::new(settings, event_sender, player_req_sender, load_req_sender);
-
 
     thread::spawn(move || loader_loop::run(load_req_receiver, load_resp_sender));
     thread::spawn(move || player_loop::run(player_req_receiver, player_event_sender));
