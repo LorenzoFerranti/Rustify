@@ -1,53 +1,51 @@
 use rand::random;
-use std::ffi::OsString;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 pub struct MusicDir {
-    pub name: OsString,
-    pub sub_dirs: Vec<Rc<MusicDir>>,
-    pub track_names: Vec<OsString>,
+    path: PathBuf,
+    sub_dirs: Vec<Rc<MusicDir>>,
+    track_paths: Vec<PathBuf>,
 }
 
 impl MusicDir {
     pub fn new(path: PathBuf) -> Self {
-        //println!("music dir: {:?}", path);
-        let tracks = get_mp3s(&path).unwrap_or_default();
+        println!("music dir: {:?}", path);
+        let tracks = get_all_mp3s(&path).unwrap_or_default();
         let sub_dirs = get_sub_dirs(&path).unwrap_or_default();
         Self {
-            name: path.file_name().unwrap().to_os_string(),
+            path,
             sub_dirs,
-            track_names: tracks,
+            track_paths: tracks,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.track_names.is_empty() && self.sub_dirs.is_empty()
+        self.track_paths.is_empty() && self.sub_dirs.is_empty()
     }
     pub fn has_tracks(&self) -> bool {
-        !self.track_names.is_empty()
+        !self.track_paths.is_empty()
     }
 
     pub fn has_sub_dirs(&self) -> bool {
         !self.sub_dirs.is_empty()
     }
 
-    pub fn get_random_track_relative_path(&self) -> Option<PathBuf> {
+    pub fn get_random_track_path(&self) -> Option<PathBuf> {
         if self.has_tracks() {
-            let n = get_random_index(&self.track_names);
-            return Some(PathBuf::from(&self.name).join(&self.track_names[n]));
+            let n = get_random_index(&self.track_paths);
+            return Some(self.track_paths[n].clone());
         }
         if self.has_sub_dirs() {
             let n = get_random_index(&self.sub_dirs);
-            let relative_path = self.sub_dirs[n].get_random_track_relative_path()?;
-            return Some(PathBuf::from(&self.name).join(relative_path));
+            return self.sub_dirs[n].get_random_track_path();
         }
         None
     }
 }
 
-fn get_mp3s(path: &Path) -> Option<Vec<OsString>> {
+fn get_all_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
     let mut res = vec![];
     let read_dir = read_dir(path).ok()?;
 
@@ -55,7 +53,7 @@ fn get_mp3s(path: &Path) -> Option<Vec<OsString>> {
         let path_buf = entry.path();
         if let Some(ext) = path_buf.extension() {
             if ext == "mp3" {
-                res.push(path_buf.file_name().unwrap().to_os_string());
+                res.push(path_buf);
             }
         }
     }
@@ -69,8 +67,9 @@ fn get_mp3s(path: &Path) -> Option<Vec<OsString>> {
 
 fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
     let mut res = vec![];
+    let read_dir = read_dir(path).ok()?;
 
-    for entry in read_dir(path).ok()?.flatten() {
+    for entry in read_dir.flatten() {
         let path_buf = entry.path();
         if path_buf.is_dir() {
             let music_dir_ptr = Rc::new(MusicDir::new(path_buf));
@@ -84,12 +83,6 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
         None
     } else {
         Some(res)
-    }
-}
-
-impl Drop for MusicDir {
-    fn drop(&mut self) {
-        println!("Dropping {:?}", self.name);
     }
 }
 

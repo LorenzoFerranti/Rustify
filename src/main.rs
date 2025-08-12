@@ -1,14 +1,42 @@
-mod helper;
-mod music_dir;
-mod music_player;
-mod root_music_dir;
-mod ui;
-
+use crate::messages::Event;
+use crossbeam_channel::{unbounded, RecvError};
 use eframe::egui::ViewportBuilder;
+use std::process::exit;
+use std::thread;
 
-use ui::app::RustifyApp;
+mod backend;
+mod frontend;
+mod messages;
+mod settings;
+mod track_metadata;
+
+pub const SETTINGS_RELATIVE_PATH: &str = "settings.json";
 
 fn main() -> eframe::Result {
+    // create channels
+    let (req_sender, req_receiver) = unbounded::<messages::Request>();
+    let (event_sender, event_receiver) = unbounded::<messages::Event>();
+
+    // spawn backend thread
+    thread::spawn(move || backend::run(req_receiver, event_sender));
+
+    // wait for initial settings message
+    let settings = match event_receiver.recv() {
+        Ok(event) => {
+            if let Event::NewSettings(s) = event {
+                s
+            } else {
+                eprintln!("Error: first message is not loaded settings!");
+                eprintln!("First message was: {event:?}");
+                exit(1)
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {e:?}");
+            exit(1);
+        }
+    };
+
     let native_options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size((600.0, 600.0))
@@ -19,6 +47,13 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Rustify",
         native_options,
-        Box::new(|cc| Ok(Box::new(RustifyApp::new(cc)))),
+        Box::new(|cc| {
+            Ok(Box::new(frontend::App::new(
+                cc,
+                settings,
+                req_sender,
+                event_receiver,
+            )))
+        }),
     )
 }

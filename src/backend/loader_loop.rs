@@ -1,19 +1,58 @@
-use crate::music_player::TrackData;
+use crate::backend::loader_messages::{Request, Response};
+use crate::track_metadata::TrackMetaData;
 
+use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
+use rodio::{Decoder, Source};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use std::sync::Arc;
 use std::time::Duration;
-
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::{MetadataOptions, StandardTagKey, Visual};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
-pub fn get_track_data(path_buf: PathBuf) -> Option<TrackData> {
-    let file = File::open(&path_buf).ok()?;
+pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response>) {
+    loop {
+        match request_receiver.recv() {
+            Ok(req) => match req {
+                Request::Track(path) => {
+                    println!("Loader: load request received: {path:?}");
+                    handle_request(path, &response_sender)
+                }
+            },
+            Err(e) => {
+                println!("Errore in loader thread: {e:?}");
+                exit(1);
+            }
+        }
+    }
+}
+
+fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
+    // metadata
+    let file = File::open(&path).unwrap();
+    let source = Decoder::new(file).unwrap();
+    let duration = source.total_duration().unwrap_or(Duration::from_secs(1));
+    let mut metadata = get_track_metadata(&path).unwrap();
+    metadata.duration = duration;
+    let metadata = Arc::new(metadata);
+
+    // file (again)
+    let file = File::open(&path).unwrap();
+
+    response_sender
+        .send(Response::Track(file, metadata))
+        .unwrap();
+    println!("Loader: Load response sent ({path:?})");
+}
+
+pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
+    let file = File::open(path).ok()?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
     let probe = get_probe();
@@ -33,7 +72,7 @@ pub fn get_track_data(path_buf: PathBuf) -> Option<TrackData> {
     // get metadata
     let binding = probed.metadata.get()?;
     let current_metadata = binding.current()?;
-    let mut track = TrackData::default();
+    let mut track = TrackMetaData::default();
 
     // read tags
     for tag in current_metadata.tags() {
@@ -52,7 +91,7 @@ pub fn get_track_data(path_buf: PathBuf) -> Option<TrackData> {
     if let Some(v) = current_metadata.visuals().first() {
         track.image = get_color_image_from_visual(v);
     } else {
-        track.image = get_color_image_from_directory(path_buf);
+        track.image = get_color_image_from_track_path(path);
         if track.image.is_some() {
             println!("GOT IMAGE FROM DIR!!!!")
         }
@@ -73,8 +112,9 @@ fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
     Some(image.to_rgba8())
 }
 
-fn get_color_image_from_directory(mut path_buf: PathBuf) -> Option<ColorImage> {
-    path_buf.pop();
+fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
+    let mut path_buf = PathBuf::from(path);
+    path_buf.pop(); // pop track file
     path_buf.push("cover.jpg");
     println!("{:?}", path_buf);
     let dyn_img = image::open(&path_buf).ok();
@@ -104,13 +144,4 @@ fn get_color_image_from_rgba_image(image: RgbaImage) -> ColorImage {
         size: [width as usize, height as usize],
         pixels,
     }
-}
-
-pub fn formatted_duration(d: &Duration) -> String {
-    let tot = d.as_secs();
-    let sec = tot % 60;
-    let min = tot / 60;
-    let sec_padding = if sec < 10 { "0" } else { "" };
-    let min_padding = if min < 10 { "0" } else { "" };
-    format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }
