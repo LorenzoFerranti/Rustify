@@ -144,7 +144,7 @@ impl App {
                 self.current_texture = None;
             }
             Some(metadata) => {
-                // cloning is bad!
+                // TODO: find a way to avoid cloning
                 match metadata.image.clone() {
                     None => {
                         self.current_texture = None;
@@ -185,7 +185,6 @@ impl eframe::App for App {
                     });
                 } else {
                     enable_duration_bar = false;
-                    // self.duration_slider = 0.0;
                 }
 
                 ui.add_space(5.0);
@@ -205,22 +204,7 @@ impl eframe::App for App {
                         });
                     });
                 });
-                // TODO: fix this alignment
                 ui.columns(3, |cols| {
-                    // cols[0].vertical_centered(|ui| {
-                    //     ui.add_space(10.0);
-                    //     ui.horizontal(|ui| {
-                    //         ui.label("Volume");
-                    //         let response = ui.add(
-                    //             Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
-                    //         );
-                    //         if response.changed() {
-                    //             self.req_sender
-                    //                 .send(Request::SetVolume(self.volume_input))
-                    //                 .unwrap();
-                    //         }
-                    //     });
-                    // });
                     cols[0].vertical_centered(|ui| {
                         ui.add_space(10.0);
                         ui.horizontal(|ui| {
@@ -257,33 +241,18 @@ impl eframe::App for App {
             }
             ui.add_space(15.0);
 
-            // let response = ui.add(Checkbox::new(&mut self.paused_input, "Paused"));
-            // if response.changed() {
-            //     self.sink.set_paused(self.paused_input);
-            // }
-
-            if let Some(metadata) = &self.current_track_metadata {
-                if let Some(color_image) = &metadata.image {
-                    // TODO: DONT DO THIS EVERY FRAME!!!!!
-                    // TODO: DONT CLONE!!!!!!
-                    let texture = ctx.load_texture(
-                        "my_texture",
-                        color_image.clone(),
-                        TextureOptions::default(),
-                    );
-                    ui.centered_and_justified(|ui| {
-                        let max_size = ui.available_size();
-                        ui.add(Image::new(&texture).max_size(max_size).rounding(10.0));
-                    });
-                } else {
-                    ui.label("NO image");
-                }
+            if let Some(texture) = &self.current_texture {
+                ui.centered_and_justified(|ui| {
+                    let max_size = ui.available_size();
+                    ui.add(Image::new(texture).max_size(max_size).rounding(10.0));
+                });
+            } else {
+                ui.label("NO image");
             }
         });
     }
 }
 
-// self.duration_slider = pos.as_secs_f32().floor() / track.duration.as_secs_f32();
 
 pub fn formatted_duration(d: &Duration) -> String {
     let tot = d.as_secs();

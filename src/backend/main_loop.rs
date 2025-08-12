@@ -133,7 +133,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .unwrap();
                 // update settings
                 data.settings.volume = v;
-                // TODO: dont write every time the volume changes!!
+                // TODO: dont write every time the volume changes!
                 settings::write(&data.settings);
             }
             messages::Request::ProvideContext(c) => {
@@ -156,9 +156,6 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
                     data.player_req_sender
                         .send(player_messages::Request::Enqueue(source, metadata))
                         .unwrap();
-                    // data.player_req_sender
-                    //     .send(player_messages::Request::Play)
-                    //     .unwrap();
                     data.queued_tracks += 1;
                     data.loading_tracks -= 1
                 }

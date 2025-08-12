@@ -19,8 +19,7 @@ pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
 
     let stream_handle = rodio::OutputStreamBuilder::open_default_stream()
         .expect("open default audio stream");
-    let sink = rodio::Sink::connect_new(&stream_handle.mixer());
-    // let (sink, idk) = Sink::new();
+    let sink = Sink::connect_new(&stream_handle.mixer());
 
     loop {
         select! {
@@ -57,7 +56,6 @@ fn handle_request(
                 // append empty callback to send track finished signal
                 let sender = track_finished_sender.clone();
                 let ec: EmptyCallback = EmptyCallback::new(Box::new(move || {
-                    // let sender_clone = sender.clone();
                     sender.send(()).unwrap();
                 }));
                 sink.append(ec);
@@ -115,7 +113,8 @@ fn handle_request(
         },
         // TODO: handle this
         Err(e) => {
-            println!("Error in handle request: {e:?}")
+            eprintln!("Error in handle request: {e:?}");
+            exit(1);
         }
     }
 }

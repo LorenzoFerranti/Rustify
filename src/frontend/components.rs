@@ -54,7 +54,7 @@ impl App {
     }
 
     pub fn spawn_skip_button(&mut self, ui: &mut Ui) {
-        let text = "⏭"; // TODO: change this
+        let text = "⏭";
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
