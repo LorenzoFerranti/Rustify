@@ -37,7 +37,7 @@ fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
     // metadata
     let file = File::open(&path).unwrap();
     let source = Decoder::new(file).unwrap();
-    let duration = source.total_duration().unwrap_or(Duration::from_secs(1));
+    let duration = source.total_duration();
     let mut metadata = get_track_metadata(&path).unwrap();
     metadata.duration = duration;
     let metadata = Arc::new(metadata);

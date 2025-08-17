@@ -6,7 +6,7 @@ pub struct TrackMetaData {
     pub name: String,
     pub artist: String,
     pub album: String,
-    pub duration: Duration,
+    pub duration: Option<Duration>,
     pub image: Option<ColorImage>,
 }
 
@@ -16,7 +16,7 @@ impl TrackMetaData {
             name: "No name".to_string(),
             artist: "No artist".to_string(),
             album: "No album".to_string(),
-            duration: Duration::default(),
+            duration: None,
             image: None,
         }
     }

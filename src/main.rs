@@ -3,6 +3,7 @@ use crossbeam_channel::{unbounded, RecvError};
 use eframe::egui::ViewportBuilder;
 use std::process::exit;
 use std::thread;
+use std::time::Duration;
 
 mod backend;
 mod frontend;

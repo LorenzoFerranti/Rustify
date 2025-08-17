@@ -85,22 +85,27 @@ fn handle_request(
 
                 event_sender.send(Event::NowPaused).unwrap();
             }
-            Request::JumpToFraction(f) => {
-                let progress_seconds = track_metadata_queue.front().unwrap().duration.mul_f32(f);
-                println!("JUMP TO {progress_seconds:?}");
-                match sink.try_seek(progress_seconds) {
-                    Ok(_) => {
-                        event_sender
-                            .send(Event::JumpedTo(progress_seconds))
-                            .unwrap();
-                    }
-                    Err(e) => {
-                        println!("ERRORE IN SEEK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                        println!("{e}");
-                        exit(1)
+            Request::JumpToFraction(f) => match track_metadata_queue.front().unwrap().duration {
+                None => {
+                    unreachable!();
+                }
+                Some(d) => {
+                    let progress_seconds = d.mul_f32(f);
+                    println!("JUMP TO {progress_seconds:?}");
+                    match sink.try_seek(progress_seconds) {
+                        Ok(_) => {
+                            event_sender
+                                .send(Event::JumpedTo(progress_seconds))
+                                .unwrap();
+                        }
+                        Err(e) => {
+                            println!("ERROR IN SEEK!");
+                            println!("{e}");
+                            exit(1)
+                        }
                     }
                 }
-            }
+            },
             Request::Skip => {
                 sink.skip_one();
             }

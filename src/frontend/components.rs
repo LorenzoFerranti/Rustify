@@ -7,12 +7,15 @@ impl App {
     pub(crate) fn spawn_duration_slider(&mut self, ui: &mut Ui) {
         ui.spacing_mut().slider_width = ui.available_width();
 
-        let mut progress_fraction = match self.get_current_track_duration() {
+        let current_duration = self.get_current_track_duration();
+
+        let mut progress_fraction = match &current_duration {
             None => 0.0,
             Some(dur) => self.progress.as_secs_f32() / dur.as_secs_f32(),
         };
 
-        let enabled = self.progress_bar_state == ProgressBarState::Active;
+        let mut enabled = self.progress_bar_state == ProgressBarState::Active;
+        enabled &= self.get_current_track_duration() != None;
 
         let response = ui.add_enabled(
             enabled,

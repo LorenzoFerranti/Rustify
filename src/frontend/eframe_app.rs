@@ -159,9 +159,9 @@ impl App {
         }
     }
 
-    pub(crate) fn get_current_track_duration(&self) -> Option<&Duration> {
+    pub(crate) fn get_current_track_duration(&self) -> Option<Duration> {
         let metadata = self.current_track_metadata.as_ref()?;
-        Some(&metadata.duration)
+        metadata.duration.clone()
     }
 }
 
@@ -195,10 +195,15 @@ impl eframe::App for App {
                     ui.label(formatted_duration(&self.progress));
                     // layout needed for correct expansion of the slider
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.label(formatted_duration(
-                            self.get_current_track_duration()
-                                .unwrap_or(&Duration::from_secs(69420)),
-                        ));
+                        match self.get_current_track_duration() {
+                            None => {
+                                ui.label("--:--");
+                            }
+                            Some(d) => {
+                                ui.label(formatted_duration(&d));
+                            }
+                        }
+
                         ui.add_enabled_ui(enable_duration_bar, |ui| {
                             self.spawn_duration_slider(ui);
                         });
