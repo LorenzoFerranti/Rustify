@@ -209,11 +209,12 @@ impl eframe::App for App {
                         });
                     });
                 });
+                ui.add_space(10.0);
                 ui.columns(3, |cols| {
                     cols[0].vertical_centered(|ui| {
                         ui.add_space(10.0);
                         ui.horizontal(|ui| {
-                            ui.label("Volume");
+                            ui.label(RichText::new("🔊").size(30.0));
                             let response = ui.add(
                                 Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
                             );
@@ -225,7 +226,10 @@ impl eframe::App for App {
                         });
                     });
                     cols[1].vertical_centered(|ui| self.spawn_pause_button(ui));
-                    cols[2].vertical_centered(|ui| self.spawn_skip_button(ui));
+                    // cols[2].vertical_centered(|ui| self.spawn_skip_button(ui));
+                    cols[2].with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                        self.spawn_skip_button(ui);
+                    });
                 });
 
                 ui.add_space(5.0);
