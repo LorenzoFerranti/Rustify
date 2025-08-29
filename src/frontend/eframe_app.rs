@@ -241,7 +241,9 @@ impl eframe::App for App {
             );
             if ui.button("Play root").clicked() {
                 self.req_sender
-                    .send(Request::ChangeRoot(PathBuf::from(self.root_music_path_input.clone())))
+                    .send(Request::ChangeRoot(PathBuf::from(
+                        self.root_music_path_input.clone(),
+                    )))
                     .unwrap();
             }
             ui.add_space(15.0);
