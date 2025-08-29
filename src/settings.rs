@@ -2,6 +2,7 @@ use crate::SETTINGS_RELATIVE_PATH;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
+use std::process;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
@@ -37,9 +38,22 @@ pub fn read() -> Settings {
 }
 
 pub fn write(data: &Settings) {
-    // TODO: handle errors
-    let json_string = serde_json::to_string(data).unwrap();
-    let mut file = File::create(SETTINGS_RELATIVE_PATH).unwrap();
-    file.write((&json_string).as_ref())
-        .expect("Failed to write file");
+    let json_string = serde_json::to_string(data)
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to serialize settings: {e}");
+            process::exit(1);
+        });
+
+    let mut file = File::create(SETTINGS_RELATIVE_PATH)
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to create file '{}': {e}", SETTINGS_RELATIVE_PATH);
+            process::exit(1);
+        });
+
+    file.write_all(json_string.as_ref())
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to write to file '{}': {e}", SETTINGS_RELATIVE_PATH);
+            process::exit(1);
+        });
 }
+
