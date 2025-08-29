@@ -3,10 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{
-    Align, CentralPanel, Color32, ColorImage, Context, Image, Layout, RichText, Slider, TextEdit,
-    TextStyle, TextureHandle, TextureOptions, TopBottomPanel,
-};
+use eframe::egui::{Align, CentralPanel, Color32, ColorImage, Context, Image, Layout, RichText, Slider, TextEdit, TextStyle, TextureHandle, TextureOptions, TopBottomPanel, Vec2};
 use eframe::{CreationContext, Frame};
 
 use crate::messages::{Event, Request};
@@ -226,7 +223,6 @@ impl eframe::App for App {
                         });
                     });
                     cols[1].vertical_centered(|ui| self.spawn_pause_button(ui));
-                    // cols[2].vertical_centered(|ui| self.spawn_skip_button(ui));
                     cols[2].with_layout(Layout::right_to_left(Align::TOP), |ui| {
                         self.spawn_skip_button(ui);
                     });
@@ -238,19 +234,24 @@ impl eframe::App for App {
 
         CentralPanel::default().show(ctx, |ui| {
             ui.label("Root path");
-            ui.add(
-                TextEdit::singleline(&mut self.root_music_path_input)
-                    .desired_width(f32::INFINITY)
-                    .font(TextStyle::Monospace),
-            );
-            if ui.button("Play root").clicked() {
-                self.req_sender
-                    .send(Request::ChangeRoot(PathBuf::from(
-                        self.root_music_path_input.clone(),
-                    )))
-                    .unwrap();
-            }
-            ui.add_space(15.0);
+            ui.allocate_ui_with_layout(
+                Vec2::new(ui.available_width(), 50.0),
+                Layout::right_to_left(Align::TOP),
+                |ui| {
+                if ui.button("🔀").clicked() {
+                    self.req_sender
+                        .send(Request::ChangeRoot(PathBuf::from(
+                            self.root_music_path_input.clone(),
+                        )))
+                        .unwrap();
+                }
+                ui.add(
+                    TextEdit::singleline(&mut self.root_music_path_input)
+                        .desired_width(f32::INFINITY)
+                        .font(TextStyle::Monospace),
+                );
+            });
+            ui.add_space(5.0);
 
             if let Some(texture) = &self.current_texture {
                 ui.centered_and_justified(|ui| {
