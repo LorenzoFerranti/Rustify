@@ -1,20 +1,20 @@
-use crate::backend::loader_messages::{Request, Response};
-use crate::track_metadata::TrackMetaData;
+use std::fs::File;
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use std::sync::Arc;
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
 use rodio::{Decoder, Source};
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::process::exit;
-use std::sync::Arc;
-use std::time::Duration;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::{MetadataOptions, StandardTagKey, Visual};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
+
+use crate::backend::loader_messages::{Request, Response};
+use crate::track_metadata::TrackMetaData;
 
 pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response>) {
     loop {

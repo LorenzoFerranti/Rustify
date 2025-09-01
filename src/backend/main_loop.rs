@@ -1,14 +1,13 @@
 use std::process::exit;
 use std::thread;
 
-use crate::backend::music_dir::MusicDir;
-use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
-
-use crate::messages::Event;
-use crate::settings::Settings;
-use crate::{messages, settings};
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use eframe::egui::Context;
+
+use crate::backend::music_dir::MusicDir;
+use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
+use crate::settings::Settings;
+use crate::{messages, settings};
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
@@ -57,7 +56,7 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
     // read settings and send them to frontend
     let settings = settings::read();
     event_sender
-        .send(Event::NewSettings(settings.clone()))
+        .send(messages::Event::NewSettings(settings.clone()))
         .expect("Error in send");
 
     // data
@@ -93,8 +92,21 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .send(player_messages::Request::Clear)
                     .unwrap();
                 // new music dir and load tracks
-                data.root_music_dir = Some(MusicDir::new(path.clone()).unwrap());
-                load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
+                // data.root_music_dir = Some(MusicDir::new(path.clone()).unwrap());
+
+                match MusicDir::new(path.clone()) {
+                    Ok(md) => {
+                        data.root_music_dir = Some(md);
+                        load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
+                    }
+                    Err(e) => {
+                        data.root_music_dir = None;
+                        data.player_req_sender
+                            .send(player_messages::Request::Clear)
+                            .unwrap();
+                        eprintln!("{e}");
+                    }
+                }
 
                 // update settings
                 data.settings.root_music_path = path.into_os_string().into_string().unwrap();
@@ -231,7 +243,7 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
         let random_path = data
             .root_music_dir
             .as_ref()
-            .expect("Error")
+            .expect("Error: no music dir")
             .get_random_track_path()
             .unwrap();
         data.load_req_sender

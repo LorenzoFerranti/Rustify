@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{
-    Align, CentralPanel, Color32, ColorImage, Context, Image, Layout, RichText, Slider, TextEdit,
-    TextStyle, TextureHandle, TextureOptions, TopBottomPanel, Vec2,
+    Align, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit, TextStyle,
+    TextureHandle, TextureOptions, TopBottomPanel, Vec2,
 };
 use eframe::{CreationContext, Frame};
 

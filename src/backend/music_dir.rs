@@ -1,9 +1,10 @@
-use rand::random;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+
+use rand::random;
 
 pub struct MusicDir {
     path: PathBuf,

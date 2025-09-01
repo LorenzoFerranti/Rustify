@@ -1,7 +1,8 @@
+use eframe::egui::{Button, RichText, Slider, Ui};
+
 use crate::frontend::eframe_app::{PauseButtonAction, PauseButtonState, ProgressBarState};
 use crate::frontend::App;
 use crate::messages::Request;
-use eframe::egui::{Button, RichText, Slider, Ui};
 
 impl App {
     pub(crate) fn spawn_duration_slider(&mut self, ui: &mut Ui) {

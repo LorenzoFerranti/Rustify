@@ -1,8 +1,10 @@
-use crate::SETTINGS_RELATIVE_PATH;
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 use std::process;
+
+use serde::{Deserialize, Serialize};
+
+use crate::SETTINGS_RELATIVE_PATH;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {

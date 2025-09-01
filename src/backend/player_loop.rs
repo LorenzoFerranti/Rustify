@@ -1,13 +1,14 @@
-use crate::backend::player_messages::{Event, Request};
-use crate::track_metadata::TrackMetaData;
 use std::collections::VecDeque;
 use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
-use rodio::source::{EmptyCallback, SeekError};
-use rodio::{Decoder, OutputStream, Sink, Source};
+use rodio::source::EmptyCallback;
+use rodio::{Decoder, Sink, Source};
+
+use crate::backend::player_messages::{Event, Request};
+use crate::track_metadata::TrackMetaData;
 
 pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
     // track finished message
@@ -112,6 +113,7 @@ fn handle_request(
             Request::Clear => {
                 sink.clear();
                 track_metadata_queue.clear();
+                event_sender.send(Event::NewTrackPlaying(None)).unwrap()
             }
             Request::SetVolume(v) => {
                 sink.set_volume(v);

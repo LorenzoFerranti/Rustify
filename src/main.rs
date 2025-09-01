@@ -1,9 +1,10 @@
-use crate::messages::Event;
-use crossbeam_channel::{unbounded, RecvError};
-use eframe::egui::ViewportBuilder;
 use std::process::exit;
 use std::thread;
-use std::time::Duration;
+
+use crossbeam_channel::unbounded;
+use eframe::egui::ViewportBuilder;
+
+use crate::messages::Event;
 
 mod backend;
 mod frontend;
