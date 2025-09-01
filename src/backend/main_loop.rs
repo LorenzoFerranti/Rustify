@@ -93,7 +93,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .send(player_messages::Request::Clear)
                     .unwrap();
                 // new music dir and load tracks
-                data.root_music_dir = Some(MusicDir::new(path.clone()));
+                data.root_music_dir = Some(MusicDir::new(path.clone()).unwrap());
                 load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
 
                 // update settings
