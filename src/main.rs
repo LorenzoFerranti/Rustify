@@ -11,6 +11,7 @@ mod frontend;
 mod messages;
 mod settings;
 mod track_metadata;
+mod image_utils;
 
 pub const SETTINGS_RELATIVE_PATH: &str = "settings.json";
 

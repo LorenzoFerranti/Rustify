@@ -14,6 +14,7 @@ use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
 use crate::backend::loader_messages::{Request, Response};
+use crate::image_utils;
 use crate::track_metadata::TrackMetaData;
 
 pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response>) {
@@ -103,7 +104,7 @@ pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
 fn get_color_image_from_visual(v: &Visual) -> Option<ColorImage> {
     let data_box = &*v.data;
     let image = get_rgba_image_from_slice(data_box)?;
-    let image = get_color_image_from_rgba_image(image);
+    let image = image_utils::get_color_image_from_rgba_image(image);
     Some(image)
 }
 
@@ -112,36 +113,23 @@ fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
     Some(image.to_rgba8())
 }
 
+// fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
+//     let mut path_buf = PathBuf::from(path);
+//     path_buf.pop(); // pop track file
+//     path_buf.push("cover.jpg");
+//     if let Some(color_image) = image_utils::load_color_image(&path_buf) {
+//         Some(color_image)
+//     } else {
+//         path_buf.pop();
+//         path_buf.push("cover.png");
+//         image_utils::load_color_image(&path_buf)
+//     }
+// }
+
 fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
-    let mut path_buf = PathBuf::from(path);
-    path_buf.pop(); // pop track file
-    path_buf.push("cover.jpg");
-    println!("{:?}", path_buf);
-    let dyn_img = image::open(&path_buf).ok();
-    match dyn_img {
-        None => {
-            println!("NONE");
-            path_buf.pop();
-            path_buf.push("cover.png");
-            let rgba_img = image::open(&path_buf).ok()?.to_rgba8();
-            Some(get_color_image_from_rgba_image(rgba_img))
-        }
-        Some(di) => {
-            println!("SOME");
-            Some(get_color_image_from_rgba_image(di.to_rgba8()))
-        }
-    }
+    let parent = path.parent()?;
+    ["cover.jpg", "cover.png"] // try each option until one works
+        .iter()
+        .find_map(|file_name| image_utils::load_color_image(&parent.join(file_name)))
 }
 
-fn get_color_image_from_rgba_image(image: RgbaImage) -> ColorImage {
-    let (width, height) = image.dimensions();
-    let pixels: Vec<_> = image
-        .pixels()
-        .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
-        .collect();
-
-    ColorImage {
-        size: [width as usize, height as usize],
-        pixels,
-    }
-}

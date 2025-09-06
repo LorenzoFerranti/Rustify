@@ -1,16 +1,16 @@
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{
-    CentralPanel, Context, Image,
-    TextureHandle, TextureOptions,
-};
-use eframe::{CreationContext, Frame};
-
+use crate::image_utils;
 use crate::messages::{Event, Request};
 use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
+use eframe::{CreationContext, Frame};
+
+const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum ProgressBarState {
@@ -39,6 +39,7 @@ pub struct App {
     pub(crate) pause_button_state: PauseButtonState,
     pub(crate) current_track_metadata: Option<Arc<TrackMetaData>>,
     pub(crate) current_texture: Option<TextureHandle>,
+    pub(crate) default_texture: TextureHandle,
     pub(crate) req_sender: Sender<Request>,
     pub(crate) event_receiver: Receiver<Event>,
 }
@@ -54,6 +55,8 @@ impl App {
 
         req_sender.send(Request::ProvideContext(ctx_clone)).unwrap();
 
+        let default_texture = load_default_texture(&cc.egui_ctx);
+
         Self {
             root_music_path_input: initial_settings.root_music_path,
             volume_input: initial_settings.volume,
@@ -63,6 +66,7 @@ impl App {
             pause_button_state: PauseButtonState::Disabled,
             current_track_metadata: None,
             current_texture: None,
+            default_texture,
             req_sender,
             event_receiver,
         }
@@ -165,20 +169,17 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.read_events(ctx);
-
         self.spawn_track_bottom_panel(ctx);
-
         self.spawn_path_top_panel(ctx);
-
-        CentralPanel::default().show(ctx, |ui| {
-            if let Some(texture) = &self.current_texture {
-                ui.centered_and_justified(|ui| {
-                    let max_size = ui.available_size();
-                    ui.add(Image::new(texture).max_size(max_size).rounding(10.0));
-                });
-            } else {
-                ui.label("NO image");
-            }
-        });
+        if self.current_track_metadata.is_some() {
+            self.spawn_image_central_panel(ctx);
+        } else {
+            CentralPanel::default().show(ctx, |ui| {});
+        }
     }
+}
+
+fn load_default_texture(ctx: &Context) -> TextureHandle {
+    let default_texture = image_utils::load_color_image(Path::new(DEFAULT_TEXTURE_PATH)).unwrap();
+    ctx.load_texture("my_texture", default_texture, TextureOptions::default())
 }
