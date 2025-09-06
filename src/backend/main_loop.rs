@@ -62,8 +62,14 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
     // data
     let mut data = ThreadData::new(settings, event_sender, player_req_sender, load_req_sender);
 
+    // spawn threads
     thread::spawn(move || loader_loop::run(load_req_receiver, load_resp_sender));
     thread::spawn(move || player_loop::run(player_req_receiver, player_event_sender));
+
+    // send change volume
+    data.player_req_sender
+        .send(player_messages::Request::SetVolume(data.settings.volume))
+        .unwrap();
 
     loop {
         select! {
