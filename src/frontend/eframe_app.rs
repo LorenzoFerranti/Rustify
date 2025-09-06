@@ -1,19 +1,16 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{
-    Align, CentralPanel, Color32, Context, Image, Layout, RichText, Slider, TextEdit, TextStyle,
-    TextureHandle, TextureOptions, TopBottomPanel, Vec2,
+    CentralPanel, Context, Image,
+    TextureHandle, TextureOptions,
 };
 use eframe::{CreationContext, Frame};
 
 use crate::messages::{Event, Request};
 use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
-
-const MY_LOCAL_PATH: &str = "C:\\Users\\loren\\Desktop\\OSTs";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum ProgressBarState {
@@ -34,16 +31,16 @@ pub(crate) enum PauseButtonAction {
 }
 
 pub struct App {
-    root_music_path_input: String,
-    volume_input: f32,
+    pub(crate) root_music_path_input: String,
+    pub(crate) volume_input: f32,
     pub(crate) progress: Duration,
     pub(crate) progress_bar_state: ProgressBarState,
     pub(crate) pause_button_action: PauseButtonAction,
     pub(crate) pause_button_state: PauseButtonState,
-    current_track_metadata: Option<Arc<TrackMetaData>>,
-    current_texture: Option<TextureHandle>,
+    pub(crate) current_track_metadata: Option<Arc<TrackMetaData>>,
+    pub(crate) current_texture: Option<TextureHandle>,
     pub(crate) req_sender: Sender<Request>,
-    event_receiver: Receiver<Event>,
+    pub(crate) event_receiver: Receiver<Event>,
 }
 
 impl App {
@@ -169,94 +166,11 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.read_events(ctx);
 
-        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                let mut enable_duration_bar = true;
+        self.spawn_track_bottom_panel(ctx);
 
-                if let Some(metadata) = &self.current_track_metadata {
-                    // name, artist and album
-                    ui.add_space(5.0);
-                    ui.horizontal_wrapped(|ui| {
-                        let text = RichText::new(&metadata.name).color(Color32::WHITE);
-                        ui.heading(text);
-                    });
-                    ui.horizontal_wrapped(|ui| {
-                        ui.label(format!("{} - {}", &metadata.artist, &metadata.album));
-                    });
-                } else {
-                    enable_duration_bar = false;
-                }
-
-                ui.add_space(5.0);
-
-                // slider
-                ui.horizontal(|ui| {
-                    // TODO: change
-                    ui.label(formatted_duration(&self.progress));
-                    // layout needed for correct expansion of the slider
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        match self.get_current_track_duration() {
-                            None => {
-                                ui.label("--:--");
-                            }
-                            Some(d) => {
-                                ui.label(formatted_duration(&d));
-                            }
-                        }
-
-                        ui.add_enabled_ui(enable_duration_bar, |ui| {
-                            self.spawn_duration_slider(ui);
-                        });
-                    });
-                });
-                ui.add_space(10.0);
-                ui.columns(3, |cols| {
-                    cols[0].vertical_centered(|ui| {
-                        ui.add_space(10.0);
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new("🔊").size(30.0));
-                            let response = ui.add(
-                                Slider::new(&mut self.volume_input, 0.0..=1.0).show_value(false),
-                            );
-                            if response.changed() {
-                                self.req_sender
-                                    .send(Request::SetVolume(self.volume_input))
-                                    .unwrap();
-                            }
-                        });
-                    });
-                    cols[1].vertical_centered(|ui| self.spawn_pause_button(ui));
-                    cols[2].with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                        self.spawn_skip_button(ui);
-                    });
-                });
-
-                ui.add_space(5.0);
-            });
-        });
+        self.spawn_path_top_panel(ctx);
 
         CentralPanel::default().show(ctx, |ui| {
-            ui.label("Root path");
-            ui.allocate_ui_with_layout(
-                Vec2::new(ui.available_width(), 50.0),
-                Layout::right_to_left(Align::TOP),
-                |ui| {
-                    if ui.button("🔀").clicked() {
-                        self.req_sender
-                            .send(Request::ChangeRoot(PathBuf::from(
-                                self.root_music_path_input.clone(),
-                            )))
-                            .unwrap();
-                    }
-                    ui.add(
-                        TextEdit::singleline(&mut self.root_music_path_input)
-                            .desired_width(f32::INFINITY)
-                            .font(TextStyle::Monospace),
-                    );
-                },
-            );
-            ui.add_space(5.0);
-
             if let Some(texture) = &self.current_texture {
                 ui.centered_and_justified(|ui| {
                     let max_size = ui.available_size();
@@ -267,19 +181,4 @@ impl eframe::App for App {
             }
         });
     }
-}
-
-pub fn formatted_duration(d: &Duration) -> String {
-    let tot = d.as_secs();
-    let sec = tot % 60;
-    let min = tot / 60;
-    let mut sec_padding = "".to_string();
-    let mut min_padding = "".to_string();
-    if sec < 10 {
-        sec_padding.push('0');
-    }
-    if min < 10 {
-        min_padding.push('0');
-    }
-    format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
 }

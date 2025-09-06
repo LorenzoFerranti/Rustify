@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use rodio::source::EmptyCallback;
-use rodio::{Decoder, Sink, Source};
+use rodio::{Decoder, Sink};
 
 use crate::backend::player_messages::{Event, Request};
 use crate::track_metadata::TrackMetaData;

@@ -7,7 +7,7 @@ use std::rc::Rc;
 use rand::random;
 
 pub struct MusicDir {
-    path: PathBuf,
+    //path: PathBuf,
     sub_dirs: Vec<Rc<MusicDir>>,
     track_paths: Vec<PathBuf>,
 }
@@ -42,16 +42,18 @@ impl MusicDir {
             Err(MusicDirCreationError::Empty)
         } else {
             Ok(Self {
-                path,
+                //path,
                 sub_dirs: sub_dirs.unwrap_or_default(),
                 track_paths: tracks.unwrap_or_default(),
             })
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.track_paths.is_empty() && self.sub_dirs.is_empty()
-    }
+    // TODO: this is unused
+    // pub fn is_empty(&self) -> bool {
+    //     self.track_paths.is_empty() && self.sub_dirs.is_empty()
+    // }
+
     pub fn has_tracks(&self) -> bool {
         !self.track_paths.is_empty()
     }

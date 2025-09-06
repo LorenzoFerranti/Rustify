@@ -238,7 +238,7 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
 }
 
 fn load_random_tracks(amount: u8, data: &mut ThreadData) {
-    for i in 0..amount {
+    for _ in 0..amount {
         // println!("Loading {i} / {amount}");
         let random_path = data
             .root_music_dir
