@@ -1,4 +1,5 @@
 use std::process::exit;
+use std::sync::Arc;
 use std::thread;
 
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
@@ -8,6 +9,7 @@ use crate::backend::music_dir::MusicDir;
 use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
 use crate::settings::Settings;
 use crate::{messages, settings};
+use crate::track_metadata::TrackMetaData;
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
@@ -93,10 +95,12 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
     match res {
         Ok(req) => match req {
             messages::Request::ChangeRoot(path) => {
+                println!("[MAIN] received ChangeRoot request");
                 // send clear
                 data.player_req_sender
                     .send(player_messages::Request::Clear)
                     .unwrap();
+                data.queued_tracks = 0;
                 // new music dir and load tracks
                 // data.root_music_dir = Some(MusicDir::new(path.clone()).unwrap());
 
@@ -202,17 +206,21 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                         .unwrap();
                 }
                 player_messages::Event::NewTrackPlaying(metadata) => {
+                    let name = match &metadata {
+                        None => "None".to_string(),
+                        Some(a) => a.name.clone(),
+                    };
                     println!(
-                        "Queued track var before subtraction: {0}",
+                        "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
+                        name,
                         data.queued_tracks
                     );
-                    println!("New Track Playing Event: {metadata:?}");
                     data.event_sender
                         .send(messages::Event::NewTrackPlaying(metadata))
                         .unwrap();
                     let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
                         - ((data.queued_tracks + data.loading_tracks) as i16);
-                    println!("Tracks to load: {tracks_to_load}");
+                    println!("[MAIN] Tracks to load: {tracks_to_load}");
                     if tracks_to_load > 0 {
                         load_random_tracks(tracks_to_load as u8, data);
                     }
@@ -244,6 +252,7 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
 }
 
 fn load_random_tracks(amount: u8, data: &mut ThreadData) {
+    println!("[MAIN] Will send {amount} loading requests");
     for _ in 0..amount {
         // println!("Loading {i} / {amount}");
         let random_path = data
@@ -252,9 +261,12 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
             .expect("Error: no music dir")
             .get_random_track_path()
             .unwrap();
+        println!("[MAIN] Sending load request, path = {}", random_path.display());
         data.load_req_sender
             .send(loader_messages::Request::Track(random_path))
             .unwrap();
     }
     data.loading_tracks += amount;
+    println!("[MAIN] {amount} loading requests sent, loading_tracks = {}", data.loading_tracks);
+
 }

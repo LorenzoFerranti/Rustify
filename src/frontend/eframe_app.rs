@@ -86,12 +86,23 @@ impl App {
         for e in events {
             match e {
                 Event::NewTrackPlaying(metadata) => {
+                    let was_some: bool = metadata.is_some();
                     self.update_metadata(ctx, metadata);
-                    self.progress_bar_state = ProgressBarState::Active;
-                    self.pause_button_action = PauseButtonAction::Pause;
-                    self.pause_button_state = PauseButtonState::Active;
-                    if self.state == AppState::LoadingNewMusicDir {
-                        self.state = AppState::Playing;
+                    match self.state {
+                        AppState::Empty => unreachable!(),
+                        AppState::LoadingNewMusicDir => {
+                            if was_some {
+                                self.state = AppState::Playing;
+                                self.progress_bar_state = ProgressBarState::Active;
+                                self.pause_button_action = PauseButtonAction::Pause;
+                                self.pause_button_state = PauseButtonState::Active;
+                            }
+                        }
+                        AppState::Playing => {
+                            self.progress_bar_state = ProgressBarState::Active;
+                            self.pause_button_action = PauseButtonAction::Pause;
+                            self.pause_button_state = PauseButtonState::Active;
+                        }
                     }
                 }
                 Event::ProgressUpdate(d) => match self.progress_bar_state {

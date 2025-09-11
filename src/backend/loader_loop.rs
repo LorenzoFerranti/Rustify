@@ -113,19 +113,6 @@ fn get_rgba_image_from_slice(data: &[u8]) -> Option<RgbaImage> {
     Some(image.to_rgba8())
 }
 
-// fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
-//     let mut path_buf = PathBuf::from(path);
-//     path_buf.pop(); // pop track file
-//     path_buf.push("cover.jpg");
-//     if let Some(color_image) = image_utils::load_color_image(&path_buf) {
-//         Some(color_image)
-//     } else {
-//         path_buf.pop();
-//         path_buf.push("cover.png");
-//         image_utils::load_color_image(&path_buf)
-//     }
-// }
-
 fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
     let parent = path.parent()?;
     ["cover.jpg", "cover.png"] // try each option until one works
