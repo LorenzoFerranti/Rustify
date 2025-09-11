@@ -13,6 +13,13 @@ use eframe::{CreationContext, Frame};
 const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
+pub(crate) enum AppState {
+    Empty,
+    LoadingNewMusicDir,
+    Playing,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum ProgressBarState {
     Active,
     Disabled,
@@ -34,6 +41,7 @@ pub struct App {
     pub(crate) root_music_path_input: String,
     pub(crate) volume_input: f32,
     pub(crate) progress: Duration,
+    pub(crate) state: AppState,
     pub(crate) progress_bar_state: ProgressBarState,
     pub(crate) pause_button_action: PauseButtonAction,
     pub(crate) pause_button_state: PauseButtonState,
@@ -61,6 +69,7 @@ impl App {
             root_music_path_input: initial_settings.root_music_path,
             volume_input: initial_settings.volume,
             progress: Duration::from_secs(0),
+            state: AppState::Empty,
             progress_bar_state: ProgressBarState::Disabled,
             pause_button_action: PauseButtonAction::Play,
             pause_button_state: PauseButtonState::Disabled,
@@ -77,11 +86,13 @@ impl App {
         for e in events {
             match e {
                 Event::NewTrackPlaying(metadata) => {
-                    println!("Frontend: New metadata! {metadata:?}");
                     self.update_metadata(ctx, metadata);
                     self.progress_bar_state = ProgressBarState::Active;
                     self.pause_button_action = PauseButtonAction::Pause;
                     self.pause_button_state = PauseButtonState::Active;
+                    if self.state == AppState::LoadingNewMusicDir {
+                        self.state = AppState::Playing;
+                    }
                 }
                 Event::ProgressUpdate(d) => match self.progress_bar_state {
                     ProgressBarState::Active => {
@@ -152,7 +163,7 @@ impl App {
                     }
                     Some(image) => {
                         self.current_texture =
-                            Some(ctx.load_texture("my_texture", image, TextureOptions::default()));
+                            Some(ctx.load_texture("current_texture", image, TextureOptions::default()));
                     }
                 }
                 self.current_track_metadata = Some(metadata);
@@ -169,17 +180,30 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.read_events(ctx);
-        self.spawn_track_bottom_panel(ctx);
         self.spawn_path_top_panel(ctx);
-        if self.current_track_metadata.is_some() {
-            self.spawn_image_central_panel(ctx);
-        } else {
-            CentralPanel::default().show(ctx, |ui| {});
+        match self.state {
+            AppState::Empty => {
+                self.spawn_empty_central_panel(ctx);
+            }
+            AppState::LoadingNewMusicDir => {
+                self.spawn_loading_central_panel(ctx);
+            }
+            AppState::Playing => {
+                self.spawn_track_bottom_panel(ctx);
+                if self.current_track_metadata.is_some() {
+                    self.spawn_image_central_panel(ctx);
+                } else {
+                    CentralPanel::default().show(ctx, |ui| {});
+                }
+            }
         }
+
+
+
     }
 }
 
 fn load_default_texture(ctx: &Context) -> TextureHandle {
     let default_texture = image_utils::load_color_image(Path::new(DEFAULT_TEXTURE_PATH)).unwrap();
-    ctx.load_texture("my_texture", default_texture, TextureOptions::default())
+    ctx.load_texture("default_texture", default_texture, TextureOptions::default())
 }

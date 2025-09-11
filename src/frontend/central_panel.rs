@@ -14,4 +14,20 @@ impl App {
             });
         });
     }
+
+    pub(crate) fn spawn_empty_central_panel(&mut self, ctx: &Context) {
+        CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| {
+                ui.label("Select a folder");
+            });
+        });
+    }
+
+    pub(crate) fn spawn_loading_central_panel(&mut self, ctx: &Context) {
+        CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| {
+                ui.label("Loading tracks...");
+            });
+        });
+    }
 }
