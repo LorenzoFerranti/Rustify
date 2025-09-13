@@ -2,15 +2,15 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::frontend::eframe_app::EmptyDisplayMessage::Error;
 use crate::image_utils;
 use crate::messages::{Event, Request};
+use crate::music_dir_creation_error::MusicDirCreationError;
 use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
 use eframe::{CreationContext, Frame};
-use crate::frontend::eframe_app::EmptyDisplayMessage::Error;
-use crate::music_dir_creation_error::MusicDirCreationError;
 
 const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
 
@@ -24,7 +24,7 @@ pub(crate) enum AppState {
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum EmptyDisplayMessage {
     SelectFolder,
-    Error(MusicDirCreationError)
+    Error(MusicDirCreationError),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -93,60 +93,66 @@ impl App {
                     let was_some: bool = metadata.is_some();
                     self.update_metadata(ctx, metadata);
                     match self.state {
-                        AppState::Empty(_) => {}, // happens during music dir loading error
+                        AppState::Empty(_) => {} // happens during music dir loading error
                         AppState::LoadingNewMusicDir => {
                             if was_some {
-                                self.state = AppState::Playing(ProgressBarState::Active, PauseButtonState::Active, PauseButtonAction::Pause);
+                                self.state = AppState::Playing(
+                                    ProgressBarState::Active,
+                                    PauseButtonState::Active,
+                                    PauseButtonAction::Pause,
+                                );
                             }
                         }
                         AppState::Playing(_, _, _) => {
-                            self.state = AppState::Playing(ProgressBarState::Active, PauseButtonState::Active, PauseButtonAction::Pause);
+                            self.state = AppState::Playing(
+                                ProgressBarState::Active,
+                                PauseButtonState::Active,
+                                PauseButtonAction::Pause,
+                            );
                         }
                     }
                 }
                 Event::ProgressUpdate(d) => match self.state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
-                    AppState::Playing(progress_bar_state, _, _) => {
-                        match progress_bar_state {
-                            ProgressBarState::Active => {
-                                self.set_progress_rounded(d);
-                            }
-                            ProgressBarState::Disabled => {}
-                            ProgressBarState::WaitingForJump => {}
+                    AppState::Playing(progress_bar_state, _, _) => match progress_bar_state {
+                        ProgressBarState::Active => {
+                            self.set_progress_rounded(d);
                         }
-                    }
-                }
+                        ProgressBarState::Disabled => {}
+                        ProgressBarState::WaitingForJump => {}
+                    },
+                },
                 Event::JumpedTo(d) => match self.state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
-                    AppState::Playing(progress_bar_state, x, y) => {
-                        match progress_bar_state {
-                            ProgressBarState::Active => {
-                                self.set_progress_rounded(d);
-                            }
-                            ProgressBarState::Disabled => {}
-                            ProgressBarState::WaitingForJump => {
-                                self.set_progress_rounded(d);
-                                self.state = AppState::Playing(ProgressBarState::Active, x, y);
-                            }
+                    AppState::Playing(progress_bar_state, x, y) => match progress_bar_state {
+                        ProgressBarState::Active => {
+                            self.set_progress_rounded(d);
                         }
-                    }
-                }
+                        ProgressBarState::Disabled => {}
+                        ProgressBarState::WaitingForJump => {
+                            self.set_progress_rounded(d);
+                            self.state = AppState::Playing(ProgressBarState::Active, x, y);
+                        }
+                    },
+                },
                 Event::NowPlaying => match self.state {
                     AppState::Empty(_) => unreachable!(),
-                    AppState::LoadingNewMusicDir => {},
+                    AppState::LoadingNewMusicDir => {}
                     AppState::Playing(x, _, _) => {
-                        self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
+                        self.state =
+                            AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
                     }
-                }
+                },
                 Event::NowPaused => match self.state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(x, _, _) => {
-                        self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
+                        self.state =
+                            AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
                     }
-                }
+                },
                 Event::NewSettings(s) => {
                     self.volume_input = s.volume;
                     self.root_music_path_input = s.root_music_path;
@@ -183,8 +189,11 @@ impl App {
                         self.current_texture = None;
                     }
                     Some(image) => {
-                        self.current_texture =
-                            Some(ctx.load_texture("current_texture", image, TextureOptions::default()));
+                        self.current_texture = Some(ctx.load_texture(
+                            "current_texture",
+                            image,
+                            TextureOptions::default(),
+                        ));
                     }
                 }
                 self.current_track_metadata = Some(metadata);
@@ -218,13 +227,14 @@ impl eframe::App for App {
                 }
             }
         }
-
-
-
     }
 }
 
 fn load_default_texture(ctx: &Context) -> TextureHandle {
     let default_texture = image_utils::load_color_image(Path::new(DEFAULT_TEXTURE_PATH)).unwrap();
-    ctx.load_texture("default_texture", default_texture, TextureOptions::default())
+    ctx.load_texture(
+        "default_texture",
+        default_texture,
+        TextureOptions::default(),
+    )
 }

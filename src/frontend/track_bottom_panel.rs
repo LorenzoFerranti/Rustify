@@ -1,8 +1,10 @@
+use crate::frontend::eframe_app::{
+    AppState, PauseButtonAction, PauseButtonState, ProgressBarState,
+};
 use crate::frontend::App;
 use crate::messages::Request;
 use eframe::egui::{Align, Button, Color32, Context, Layout, RichText, Slider, TopBottomPanel, Ui};
 use std::time::Duration;
-use crate::frontend::eframe_app::{AppState, PauseButtonAction, PauseButtonState, ProgressBarState};
 
 impl App {
     pub(crate) fn spawn_track_bottom_panel(&mut self, ctx: &Context) {
@@ -117,7 +119,7 @@ impl App {
             AppState::Playing(_, _, pba) => match pba {
                 PauseButtonAction::Pause => "⏸",
                 PauseButtonAction::Play => "▶",
-            }
+            },
         };
 
         let response = ui.add_sized(
@@ -125,7 +127,6 @@ impl App {
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-
             match self.state {
                 AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),

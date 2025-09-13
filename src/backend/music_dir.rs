@@ -4,8 +4,8 @@ use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use rand::random;
 use crate::music_dir_creation_error::MusicDirCreationError;
+use rand::random;
 
 pub struct MusicDir {
     //path: PathBuf,

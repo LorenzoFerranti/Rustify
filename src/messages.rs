@@ -2,10 +2,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use eframe::egui::Context;
 use crate::music_dir_creation_error::MusicDirCreationError;
 use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
+use eframe::egui::Context;
 
 #[derive(Clone)]
 pub enum Request {

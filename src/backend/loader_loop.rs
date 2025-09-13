@@ -119,4 +119,3 @@ fn get_color_image_from_track_path(path: &Path) -> Option<ColorImage> {
         .iter()
         .find_map(|file_name| image_utils::load_color_image(&parent.join(file_name)))
 }
-

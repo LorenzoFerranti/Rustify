@@ -8,8 +8,8 @@ use eframe::egui::Context;
 use crate::backend::music_dir::MusicDir;
 use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
 use crate::settings::Settings;
-use crate::{messages, settings};
 use crate::track_metadata::TrackMetaData;
+use crate::{messages, settings};
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
@@ -109,7 +109,8 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                         load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
 
                         // update settings
-                        data.settings.root_music_path = path.into_os_string().into_string().unwrap();
+                        data.settings.root_music_path =
+                            path.into_os_string().into_string().unwrap();
                         settings::write(&data.settings);
 
                         // Send play just to be sure
@@ -122,7 +123,9 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                         data.player_req_sender
                             .send(player_messages::Request::Clear)
                             .unwrap();
-                        data.event_sender.send(messages::Event::DirError(e)).unwrap();
+                        data.event_sender
+                            .send(messages::Event::DirError(e))
+                            .unwrap();
                     }
                 }
             }
@@ -204,27 +207,24 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                         .send(messages::Event::ProgressUpdate(d))
                         .unwrap();
                 }
-                player_messages::Event::NewTrackPlaying(metadata) => {
-                    match metadata {
-                        None => {}
-                        Some(metadata) => {
-                            println!(
-                                "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
-                                metadata.name,
-                                data.queued_tracks
-                            );
-                            data.event_sender
-                                .send(messages::Event::NewTrackPlaying(Some(metadata)))
-                                .unwrap();
-                            let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
-                                - ((data.queued_tracks + data.loading_tracks) as i16);
-                            println!("[MAIN] Tracks to load: {tracks_to_load}");
-                            if tracks_to_load > 0 {
-                                load_random_tracks(tracks_to_load as u8, data);
-                            }
+                player_messages::Event::NewTrackPlaying(metadata) => match metadata {
+                    None => {}
+                    Some(metadata) => {
+                        println!(
+                            "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
+                            metadata.name, data.queued_tracks
+                        );
+                        data.event_sender
+                            .send(messages::Event::NewTrackPlaying(Some(metadata)))
+                            .unwrap();
+                        let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
+                            - ((data.queued_tracks + data.loading_tracks) as i16);
+                        println!("[MAIN] Tracks to load: {tracks_to_load}");
+                        if tracks_to_load > 0 {
+                            load_random_tracks(tracks_to_load as u8, data);
                         }
                     }
-                }
+                },
                 player_messages::Event::TrackFinished => {
                     data.queued_tracks -= 1; // panics if underflow
                 }
@@ -261,12 +261,17 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
             .expect("Error: no music dir")
             .get_random_track_path()
             .unwrap();
-        println!("[MAIN] Sending load request, path = {}", random_path.display());
+        println!(
+            "[MAIN] Sending load request, path = {}",
+            random_path.display()
+        );
         data.load_req_sender
             .send(loader_messages::Request::Track(random_path))
             .unwrap();
     }
     data.loading_tracks += amount;
-    println!("[MAIN] {amount} loading requests sent, loading_tracks = {}", data.loading_tracks);
-
+    println!(
+        "[MAIN] {amount} loading requests sent, loading_tracks = {}",
+        data.loading_tracks
+    );
 }

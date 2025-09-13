@@ -120,7 +120,7 @@ fn handle_request(
                 event_sender.send(Event::NewTrackPlaying(None)).unwrap()
             }
             Request::SetVolume(v) => {
-                sink.set_volume(v*v); // adjust volume curve
+                sink.set_volume(v * v); // adjust volume curve
             }
         },
         // TODO: handle this

@@ -8,11 +8,11 @@ use crate::messages::Event;
 
 mod backend;
 mod frontend;
+mod image_utils;
 mod messages;
+mod music_dir_creation_error;
 mod settings;
 mod track_metadata;
-mod image_utils;
-mod music_dir_creation_error;
 
 pub const SETTINGS_RELATIVE_PATH: &str = "settings.json";
 

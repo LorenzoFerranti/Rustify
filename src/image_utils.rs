@@ -1,7 +1,6 @@
-use std::path::{Path, PathBuf};
 use eframe::egui::{Color32, ColorImage};
 use image::RgbaImage;
-
+use std::path::{Path, PathBuf};
 
 pub fn load_color_image(path: &Path) -> Option<ColorImage> {
     let path_buf = PathBuf::from(path);

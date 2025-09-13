@@ -1,7 +1,7 @@
-use crate::frontend::App;
-use eframe::egui::{CentralPanel, Context, Image};
 use crate::frontend::eframe_app::EmptyDisplayMessage;
+use crate::frontend::App;
 use crate::music_dir_creation_error::MusicDirCreationError;
+use eframe::egui::{CentralPanel, Context, Image};
 
 impl App {
     pub(crate) fn spawn_image_central_panel(&mut self, ctx: &Context) {
@@ -17,7 +17,11 @@ impl App {
         });
     }
 
-    pub(crate) fn spawn_empty_central_panel(&mut self, ctx: &Context, message: EmptyDisplayMessage) {
+    pub(crate) fn spawn_empty_central_panel(
+        &mut self,
+        ctx: &Context,
+        message: EmptyDisplayMessage,
+    ) {
         let text: &str = match message {
             EmptyDisplayMessage::SelectFolder => "↑ Select a folder ↑",
             EmptyDisplayMessage::Error(e) => match e {

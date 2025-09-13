@@ -1,8 +1,8 @@
+use crate::frontend::eframe_app::AppState;
 use crate::frontend::App;
 use crate::messages::Request;
 use eframe::egui::{Align, Button, Context, Layout, TextEdit, TextStyle, TopBottomPanel, Vec2};
 use std::path::PathBuf;
-use crate::frontend::eframe_app::AppState;
 
 impl App {
     pub(crate) fn spawn_path_top_panel(&mut self, ctx: &Context) {
@@ -14,10 +14,9 @@ impl App {
                 Vec2::new(ui.available_width(), 50.0),
                 Layout::right_to_left(Align::TOP),
                 |ui| {
-
                     let response = ui.add_enabled(
                         self.state != AppState::LoadingNewMusicDir,
-                        Button::new("🔀")
+                        Button::new("🔀"),
                     );
 
                     if response.clicked() {
