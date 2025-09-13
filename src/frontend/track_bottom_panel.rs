@@ -2,7 +2,7 @@ use crate::frontend::App;
 use crate::messages::Request;
 use eframe::egui::{Align, Button, Color32, Context, Layout, RichText, Slider, TopBottomPanel, Ui};
 use std::time::Duration;
-use crate::frontend::eframe_app::{PauseButtonAction, PauseButtonState, ProgressBarState};
+use crate::frontend::eframe_app::{AppState, PauseButtonAction, PauseButtonState, ProgressBarState};
 
 impl App {
     pub(crate) fn spawn_track_bottom_panel(&mut self, ctx: &Context) {
@@ -83,7 +83,11 @@ impl App {
             Some(dur) => self.progress.as_secs_f32() / dur.as_secs_f32(),
         };
 
-        let mut enabled = self.progress_bar_state == ProgressBarState::Active;
+        let mut enabled = match self.state {
+            AppState::Empty => unreachable!(),
+            AppState::LoadingNewMusicDir => unreachable!(),
+            AppState::Playing(pbs, _, _) => pbs == ProgressBarState::Active,
+        };
         enabled &= self.get_current_track_duration() != None;
 
         let response = ui.add_enabled(
@@ -93,7 +97,13 @@ impl App {
                 .trailing_fill(true),
         );
         if response.drag_stopped() {
-            self.progress_bar_state = ProgressBarState::WaitingForJump;
+            match self.state {
+                AppState::Empty => unreachable!(),
+                AppState::LoadingNewMusicDir => unreachable!(),
+                AppState::Playing(_, x, y) => {
+                    self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y)
+                }
+            };
             self.req_sender
                 .send(Request::JumpToFraction(progress_fraction))
                 .unwrap()
@@ -101,26 +111,38 @@ impl App {
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-        let text = match self.pause_button_action {
-            PauseButtonAction::Pause => "⏸",
-            PauseButtonAction::Play => "▶",
+        let text = match self.state {
+            AppState::Empty => unreachable!(),
+            AppState::LoadingNewMusicDir => unreachable!(),
+            AppState::Playing(_, _, pba) => match pba {
+                PauseButtonAction::Pause => "⏸",
+                PauseButtonAction::Play => "▶",
+            }
         };
+
         let response = ui.add_sized(
             [40.0, 40.0],
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-            match self.pause_button_action {
-                PauseButtonAction::Pause => {
-                    println!("UI: Pause sent");
-                    self.req_sender.send(Request::Pause).unwrap()
+
+            match self.state {
+                AppState::Empty => unreachable!(),
+                AppState::LoadingNewMusicDir => unreachable!(),
+                AppState::Playing(x, _, pba) => {
+                    match pba {
+                        PauseButtonAction::Pause => {
+                            println!("UI: Pause sent");
+                            self.req_sender.send(Request::Pause).unwrap()
+                        }
+                        PauseButtonAction::Play => {
+                            println!("UI: Play sent");
+                            self.req_sender.send(Request::Play).unwrap()
+                        }
+                    }
+                    self.state = AppState::Playing(x, PauseButtonState::WaitingForEvent, pba);
                 }
-                PauseButtonAction::Play => {
-                    println!("UI: Play sent");
-                    self.req_sender.send(Request::Play).unwrap()
-                }
-            }
-            self.pause_button_state = PauseButtonState::WaitingForEvent;
+            };
         }
     }
 

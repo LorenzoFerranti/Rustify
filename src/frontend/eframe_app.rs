@@ -16,7 +16,7 @@ const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
 pub(crate) enum AppState {
     Empty,
     LoadingNewMusicDir,
-    Playing,
+    Playing(ProgressBarState, PauseButtonState, PauseButtonAction),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -26,12 +26,14 @@ pub(crate) enum ProgressBarState {
     WaitingForJump,
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum PauseButtonState {
     Active,
     Disabled,
     WaitingForEvent,
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum PauseButtonAction {
     Pause,
     Play,
@@ -42,9 +44,6 @@ pub struct App {
     pub(crate) volume_input: f32,
     pub(crate) progress: Duration,
     pub(crate) state: AppState,
-    pub(crate) progress_bar_state: ProgressBarState,
-    pub(crate) pause_button_action: PauseButtonAction,
-    pub(crate) pause_button_state: PauseButtonState,
     pub(crate) current_track_metadata: Option<Arc<TrackMetaData>>,
     pub(crate) current_texture: Option<TextureHandle>,
     pub(crate) default_texture: TextureHandle,
@@ -70,9 +69,6 @@ impl App {
             volume_input: initial_settings.volume,
             progress: Duration::from_secs(0),
             state: AppState::Empty,
-            progress_bar_state: ProgressBarState::Disabled,
-            pause_button_action: PauseButtonAction::Play,
-            pause_button_state: PauseButtonState::Disabled,
             current_track_metadata: None,
             current_texture: None,
             default_texture,
@@ -92,52 +88,55 @@ impl App {
                         AppState::Empty => unreachable!(),
                         AppState::LoadingNewMusicDir => {
                             if was_some {
-                                self.state = AppState::Playing;
-                                self.progress_bar_state = ProgressBarState::Active;
-                                self.pause_button_action = PauseButtonAction::Pause;
-                                self.pause_button_state = PauseButtonState::Active;
+                                self.state = AppState::Playing(ProgressBarState::Active, PauseButtonState::Active, PauseButtonAction::Pause);
                             }
                         }
-                        AppState::Playing => {
-                            self.progress_bar_state = ProgressBarState::Active;
-                            self.pause_button_action = PauseButtonAction::Pause;
-                            self.pause_button_state = PauseButtonState::Active;
+                        AppState::Playing(_, _, _) => {
+                            self.state = AppState::Playing(ProgressBarState::Active, PauseButtonState::Active, PauseButtonAction::Pause);
                         }
                     }
                 }
-                Event::ProgressUpdate(d) => match self.progress_bar_state {
-                    ProgressBarState::Active => {
-                        self.set_progress_rounded(d);
-                    }
-                    ProgressBarState::Disabled => {}
-                    ProgressBarState::WaitingForJump => {}
-                },
-                Event::JumpedTo(d) => match self.progress_bar_state {
-                    ProgressBarState::Active => {
-                        self.set_progress_rounded(d);
-                    }
-                    ProgressBarState::Disabled => {}
-                    ProgressBarState::WaitingForJump => {
-                        self.set_progress_rounded(d);
-                        self.progress_bar_state = ProgressBarState::Active;
-                    }
-                },
-                Event::NowPlaying => {
-                    self.pause_button_action = PauseButtonAction::Pause;
-                    match self.pause_button_state {
-                        PauseButtonState::Active => {}
-                        PauseButtonState::Disabled | PauseButtonState::WaitingForEvent => {
-                            self.pause_button_state = PauseButtonState::Active;
+                Event::ProgressUpdate(d) => match self.state {
+                    AppState::Empty => unreachable!(),
+                    AppState::LoadingNewMusicDir => unreachable!(),
+                    AppState::Playing(progress_bar_state, _, _) => {
+                        match progress_bar_state {
+                            ProgressBarState::Active => {
+                                self.set_progress_rounded(d);
+                            }
+                            ProgressBarState::Disabled => {}
+                            ProgressBarState::WaitingForJump => {}
                         }
                     }
                 }
-                Event::NowPaused => {
-                    self.pause_button_action = PauseButtonAction::Play;
-                    match self.pause_button_state {
-                        PauseButtonState::Active => {}
-                        PauseButtonState::Disabled | PauseButtonState::WaitingForEvent => {
-                            self.pause_button_state = PauseButtonState::Active;
+                Event::JumpedTo(d) => match self.state {
+                    AppState::Empty => unreachable!(),
+                    AppState::LoadingNewMusicDir => unreachable!(),
+                    AppState::Playing(progress_bar_state, x, y) => {
+                        match progress_bar_state {
+                            ProgressBarState::Active => {
+                                self.set_progress_rounded(d);
+                            }
+                            ProgressBarState::Disabled => {}
+                            ProgressBarState::WaitingForJump => {
+                                self.set_progress_rounded(d);
+                                self.state = AppState::Playing(ProgressBarState::Active, x, y);
+                            }
                         }
+                    }
+                }
+                Event::NowPlaying => match self.state {
+                    AppState::Empty => unreachable!(),
+                    AppState::LoadingNewMusicDir => {},
+                    AppState::Playing(x, _, _) => {
+                        self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
+                    }
+                }
+                Event::NowPaused => match self.state {
+                    AppState::Empty => unreachable!(),
+                    AppState::LoadingNewMusicDir => unreachable!(),
+                    AppState::Playing(x, _, _) => {
+                        self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
                     }
                 }
                 Event::NewSettings(s) => {
@@ -199,7 +198,7 @@ impl eframe::App for App {
             AppState::LoadingNewMusicDir => {
                 self.spawn_loading_central_panel(ctx);
             }
-            AppState::Playing => {
+            AppState::Playing(_, _, _) => {
                 self.spawn_track_bottom_panel(ctx);
                 if self.current_track_metadata.is_some() {
                     self.spawn_image_central_panel(ctx);

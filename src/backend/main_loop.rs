@@ -1,6 +1,6 @@
 use std::process::exit;
 use std::sync::Arc;
-use std::thread;
+use std::{process, thread};
 
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use eframe::egui::Context;
@@ -101,9 +101,8 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .send(player_messages::Request::Clear)
                     .unwrap();
                 data.queued_tracks = 0;
-                // new music dir and load tracks
-                // data.root_music_dir = Some(MusicDir::new(path.clone()).unwrap());
 
+                // new music dir and load tracks
                 match MusicDir::new(path.clone()) {
                     Ok(md) => {
                         data.root_music_dir = Some(md);
@@ -115,6 +114,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                             .send(player_messages::Request::Clear)
                             .unwrap();
                         eprintln!("{e}");
+                        exit(1);
                     }
                 }
 

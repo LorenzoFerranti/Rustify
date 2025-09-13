@@ -36,7 +36,11 @@ pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
             ),
             default(Duration::from_millis(100)) => {},
         }
-        send_progress_event(&event_sender, &sink);
+        if !sink.empty() {
+            event_sender
+                .send(Event::ProgressUpdate(sink.get_pos()))
+                .unwrap()
+        }
     }
 }
 
@@ -140,10 +144,4 @@ fn handle_track_finished(
             .send(Event::NewTrackPlaying(Some(Arc::clone(metadata))))
             .unwrap(),
     }
-}
-
-fn send_progress_event(event_sender: &Sender<Event>, sink: &Sink) {
-    event_sender
-        .send(Event::ProgressUpdate(sink.get_pos()))
-        .unwrap()
 }
