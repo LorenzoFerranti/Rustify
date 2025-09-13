@@ -107,25 +107,24 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     Ok(md) => {
                         data.root_music_dir = Some(md);
                         load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
+
+                        // update settings
+                        data.settings.root_music_path = path.into_os_string().into_string().unwrap();
+                        settings::write(&data.settings);
+
+                        // Send play just to be sure
+                        data.player_req_sender
+                            .send(player_messages::Request::Play)
+                            .unwrap();
                     }
                     Err(e) => {
                         data.root_music_dir = None;
                         data.player_req_sender
                             .send(player_messages::Request::Clear)
                             .unwrap();
-                        eprintln!("{e}");
-                        exit(1);
+                        data.event_sender.send(messages::Event::DirError(e)).unwrap();
                     }
                 }
-
-                // update settings
-                data.settings.root_music_path = path.into_os_string().into_string().unwrap();
-                settings::write(&data.settings);
-
-                // Send play just to be sure
-                data.player_req_sender
-                    .send(player_messages::Request::Play)
-                    .unwrap();
             }
             messages::Request::Play => {
                 println!("Backend Main: Play Sent");
@@ -206,23 +205,24 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                         .unwrap();
                 }
                 player_messages::Event::NewTrackPlaying(metadata) => {
-                    let name = match &metadata {
-                        None => "None".to_string(),
-                        Some(a) => a.name.clone(),
-                    };
-                    println!(
-                        "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
-                        name,
-                        data.queued_tracks
-                    );
-                    data.event_sender
-                        .send(messages::Event::NewTrackPlaying(metadata))
-                        .unwrap();
-                    let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
-                        - ((data.queued_tracks + data.loading_tracks) as i16);
-                    println!("[MAIN] Tracks to load: {tracks_to_load}");
-                    if tracks_to_load > 0 {
-                        load_random_tracks(tracks_to_load as u8, data);
+                    match metadata {
+                        None => {}
+                        Some(metadata) => {
+                            println!(
+                                "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
+                                metadata.name,
+                                data.queued_tracks
+                            );
+                            data.event_sender
+                                .send(messages::Event::NewTrackPlaying(Some(metadata)))
+                                .unwrap();
+                            let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
+                                - ((data.queued_tracks + data.loading_tracks) as i16);
+                            println!("[MAIN] Tracks to load: {tracks_to_load}");
+                            if tracks_to_load > 0 {
+                                load_random_tracks(tracks_to_load as u8, data);
+                            }
+                        }
                     }
                 }
                 player_messages::Event::TrackFinished => {

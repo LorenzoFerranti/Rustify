@@ -9,14 +9,22 @@ use crate::track_metadata::TrackMetaData;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
 use eframe::{CreationContext, Frame};
+use crate::frontend::eframe_app::EmptyDisplayMessage::Error;
+use crate::music_dir_creation_error::MusicDirCreationError;
 
 const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum AppState {
-    Empty,
+    Empty(EmptyDisplayMessage),
     LoadingNewMusicDir,
     Playing(ProgressBarState, PauseButtonState, PauseButtonAction),
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum EmptyDisplayMessage {
+    SelectFolder,
+    Error(MusicDirCreationError)
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -68,7 +76,7 @@ impl App {
             root_music_path_input: initial_settings.root_music_path,
             volume_input: initial_settings.volume,
             progress: Duration::from_secs(0),
-            state: AppState::Empty,
+            state: AppState::Empty(EmptyDisplayMessage::SelectFolder),
             current_track_metadata: None,
             current_texture: None,
             default_texture,
@@ -85,7 +93,7 @@ impl App {
                     let was_some: bool = metadata.is_some();
                     self.update_metadata(ctx, metadata);
                     match self.state {
-                        AppState::Empty => unreachable!(),
+                        AppState::Empty(_) => {}, // happens during music dir loading error
                         AppState::LoadingNewMusicDir => {
                             if was_some {
                                 self.state = AppState::Playing(ProgressBarState::Active, PauseButtonState::Active, PauseButtonAction::Pause);
@@ -97,7 +105,7 @@ impl App {
                     }
                 }
                 Event::ProgressUpdate(d) => match self.state {
-                    AppState::Empty => unreachable!(),
+                    AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(progress_bar_state, _, _) => {
                         match progress_bar_state {
@@ -110,7 +118,7 @@ impl App {
                     }
                 }
                 Event::JumpedTo(d) => match self.state {
-                    AppState::Empty => unreachable!(),
+                    AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(progress_bar_state, x, y) => {
                         match progress_bar_state {
@@ -126,14 +134,14 @@ impl App {
                     }
                 }
                 Event::NowPlaying => match self.state {
-                    AppState::Empty => unreachable!(),
+                    AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => {},
                     AppState::Playing(x, _, _) => {
                         self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
                     }
                 }
                 Event::NowPaused => match self.state {
-                    AppState::Empty => unreachable!(),
+                    AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(x, _, _) => {
                         self.state = AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
@@ -142,6 +150,9 @@ impl App {
                 Event::NewSettings(s) => {
                     self.volume_input = s.volume;
                     self.root_music_path_input = s.root_music_path;
+                }
+                Event::DirError(e) => {
+                    self.state = AppState::Empty(Error(e));
                 }
             }
         }
@@ -192,8 +203,8 @@ impl eframe::App for App {
         self.read_events(ctx);
         self.spawn_path_top_panel(ctx);
         match self.state {
-            AppState::Empty => {
-                self.spawn_empty_central_panel(ctx);
+            AppState::Empty(message) => {
+                self.spawn_empty_central_panel(ctx, message);
             }
             AppState::LoadingNewMusicDir => {
                 self.spawn_loading_central_panel(ctx);

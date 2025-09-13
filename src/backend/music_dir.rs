@@ -5,28 +5,13 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use rand::random;
+use crate::music_dir_creation_error::MusicDirCreationError;
 
 pub struct MusicDir {
     //path: PathBuf,
     sub_dirs: Vec<Rc<MusicDir>>,
     track_paths: Vec<PathBuf>,
 }
-
-#[derive(Debug)]
-pub enum MusicDirCreationError {
-    NotFound,
-    NotDir,
-    Empty,
-    Unknown,
-}
-
-impl Display for MusicDirCreationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Error for MusicDirCreationError {}
 
 impl MusicDir {
     pub fn new(path: PathBuf) -> Result<Self, MusicDirCreationError> {

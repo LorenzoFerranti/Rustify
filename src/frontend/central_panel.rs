@@ -1,5 +1,7 @@
 use crate::frontend::App;
 use eframe::egui::{CentralPanel, Context, Image};
+use crate::frontend::eframe_app::EmptyDisplayMessage;
+use crate::music_dir_creation_error::MusicDirCreationError;
 
 impl App {
     pub(crate) fn spawn_image_central_panel(&mut self, ctx: &Context) {
@@ -15,10 +17,19 @@ impl App {
         });
     }
 
-    pub(crate) fn spawn_empty_central_panel(&mut self, ctx: &Context) {
+    pub(crate) fn spawn_empty_central_panel(&mut self, ctx: &Context, message: EmptyDisplayMessage) {
+        let text: &str = match message {
+            EmptyDisplayMessage::SelectFolder => "↑ Select a folder ↑",
+            EmptyDisplayMessage::Error(e) => match e {
+                MusicDirCreationError::NotFound => "Error: path not found",
+                MusicDirCreationError::NotDir => "Error: selected path is not a folder",
+                MusicDirCreationError::Empty => "Error: no .mp3 files found inside the selected folder and its relative sub-folders",
+                MusicDirCreationError::Unknown => "An unknown error occurred",
+            }
+        };
         CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
-                ui.label("Select a folder");
+                ui.label(text);
             });
         });
     }

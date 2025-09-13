@@ -84,7 +84,7 @@ impl App {
         };
 
         let mut enabled = match self.state {
-            AppState::Empty => unreachable!(),
+            AppState::Empty(_) => unreachable!(),
             AppState::LoadingNewMusicDir => unreachable!(),
             AppState::Playing(pbs, _, _) => pbs == ProgressBarState::Active,
         };
@@ -98,7 +98,7 @@ impl App {
         );
         if response.drag_stopped() {
             match self.state {
-                AppState::Empty => unreachable!(),
+                AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),
                 AppState::Playing(_, x, y) => {
                     self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y)
@@ -112,7 +112,7 @@ impl App {
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
         let text = match self.state {
-            AppState::Empty => unreachable!(),
+            AppState::Empty(_) => unreachable!(),
             AppState::LoadingNewMusicDir => unreachable!(),
             AppState::Playing(_, _, pba) => match pba {
                 PauseButtonAction::Pause => "⏸",
@@ -127,7 +127,7 @@ impl App {
         if response.clicked() {
 
             match self.state {
-                AppState::Empty => unreachable!(),
+                AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),
                 AppState::Playing(x, _, pba) => {
                     match pba {

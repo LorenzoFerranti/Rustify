@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use eframe::egui::Context;
-
+use crate::music_dir_creation_error::MusicDirCreationError;
 use crate::settings::Settings;
 use crate::track_metadata::TrackMetaData;
 
@@ -26,4 +26,5 @@ pub enum Event {
     ProgressUpdate(Duration), // [0, 1], always forward
     JumpedTo(Duration),       // [0, 1]
     NewSettings(Settings),
+    DirError(MusicDirCreationError),
 }
