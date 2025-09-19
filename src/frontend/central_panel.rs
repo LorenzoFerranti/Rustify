@@ -23,7 +23,7 @@ impl App {
         message: EmptyDisplayMessage,
     ) {
         let text: &str = match message {
-            EmptyDisplayMessage::SelectFolder => "↑ Select a folder ↑",
+            EmptyDisplayMessage::SelectFolder => "Select a folder",
             EmptyDisplayMessage::Error(e) => match e {
                 MusicDirCreationError::NotFound => "Error: path not found",
                 MusicDirCreationError::NotDir => "Error: selected path is not a folder",
