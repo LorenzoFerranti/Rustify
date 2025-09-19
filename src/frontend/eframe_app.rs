@@ -12,7 +12,7 @@ use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
 use eframe::{CreationContext, Frame};
 
-const DEFAULT_TEXTURE_PATH: &str = "src/assets/cover.png";
+const DEFAULT_TEXTURE_PATH: &str = "assets/cover.png";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum AppState {
@@ -30,14 +30,12 @@ pub(crate) enum EmptyDisplayMessage {
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum ProgressBarState {
     Active,
-    Disabled,
     WaitingForJump,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum PauseButtonState {
     Active,
-    Disabled,
     WaitingForEvent,
 }
 
@@ -119,7 +117,6 @@ impl App {
                         ProgressBarState::Active => {
                             self.set_progress_rounded(d);
                         }
-                        ProgressBarState::Disabled => {}
                         ProgressBarState::WaitingForJump => {}
                     },
                 },
@@ -130,7 +127,6 @@ impl App {
                         ProgressBarState::Active => {
                             self.set_progress_rounded(d);
                         }
-                        ProgressBarState::Disabled => {}
                         ProgressBarState::WaitingForJump => {
                             self.set_progress_rounded(d);
                             self.state = AppState::Playing(ProgressBarState::Active, x, y);
@@ -223,7 +219,7 @@ impl eframe::App for App {
                 if self.current_track_metadata.is_some() {
                     self.spawn_image_central_panel(ctx);
                 } else {
-                    CentralPanel::default().show(ctx, |ui| {});
+                    CentralPanel::default().show(ctx, |_| {});
                 }
             }
         }

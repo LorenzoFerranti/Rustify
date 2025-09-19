@@ -10,8 +10,8 @@ pub struct TrackMetaData {
     pub image: Option<ColorImage>,
 }
 
-impl TrackMetaData {
-    pub fn default() -> Self {
+impl Default for TrackMetaData {
+    fn default() -> Self {
         Self {
             name: "No name".to_string(),
             artist: "No artist".to_string(),

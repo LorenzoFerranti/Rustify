@@ -1,5 +1,3 @@
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -8,24 +6,28 @@ use crate::music_dir_creation_error::MusicDirCreationError;
 use rand::random;
 
 pub struct MusicDir {
-    //path: PathBuf,
     sub_dirs: Vec<Rc<MusicDir>>,
     track_paths: Vec<PathBuf>,
 }
 
 impl MusicDir {
     pub fn new(path: PathBuf) -> Result<Self, MusicDirCreationError> {
+        // println!("Creating {}", path.display());
         if !path.exists() {
+            // println!("DOESNT EXIST");
             return Err(MusicDirCreationError::NotFound);
         }
         if !path.is_dir() {
+            // println!("NOT DIR");
             return Err(MusicDirCreationError::NotDir);
         }
         let tracks = get_all_mp3s(&path);
         let sub_dirs = get_sub_dirs(&path);
         if tracks.is_none() && sub_dirs.is_err() {
+            // println!("EMPTY");
             Err(MusicDirCreationError::Empty)
         } else {
+            // println!("{} created!!!!!", path.display());
             Ok(Self {
                 //path,
                 sub_dirs: sub_dirs.unwrap_or_default(),
@@ -91,7 +93,7 @@ fn get_sub_dirs(path: &Path) -> Result<Vec<Rc<MusicDir>>, MusicDirCreationError>
                         res.push(Rc::new(music_dir));
                     }
                     Err(e) => match e {
-                        MusicDirCreationError::NotFound => unreachable!(),
+                        MusicDirCreationError::NotFound => {}
                         MusicDirCreationError::NotDir => {}
                         MusicDirCreationError::Empty => {}
                         MusicDirCreationError::Unknown => {

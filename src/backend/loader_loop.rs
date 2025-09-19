@@ -4,7 +4,7 @@ use std::process::exit;
 use std::sync::Arc;
 
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{Color32, ColorImage};
+use eframe::egui::ColorImage;
 use image::RgbaImage;
 use rodio::{Decoder, Source};
 use symphonia::core::formats::FormatOptions;
@@ -27,7 +27,7 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
                 }
             },
             Err(e) => {
-                println!("Errore in loader thread: {e:?}");
+                println!("Error in loader thread: {e:?}");
                 exit(1);
             }
         }
@@ -39,7 +39,18 @@ fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
     let file = File::open(&path).unwrap();
     let source = Decoder::new(file).unwrap();
     let duration = source.total_duration();
-    let mut metadata = get_track_metadata(&path).unwrap();
+    let mut metadata = match get_track_metadata(&path) {
+        None => {
+            let mut m = TrackMetaData::default();
+            if let Some(name) = path.file_name() {
+                if let Some(name) = name.to_str() {
+                    m.name = name.to_string();
+                }
+            }
+            m
+        }
+        Some(m) => m,
+    };
     metadata.duration = duration;
     let metadata = Arc::new(metadata);
 
@@ -54,6 +65,7 @@ fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
 
 pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
     let file = File::open(path).ok()?;
+
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
     let probe = get_probe();
@@ -72,7 +84,9 @@ pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
 
     // get metadata
     let binding = probed.metadata.get()?;
+
     let current_metadata = binding.current()?;
+
     let mut track = TrackMetaData::default();
 
     // read tags
@@ -93,9 +107,6 @@ pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
         track.image = get_color_image_from_visual(v);
     } else {
         track.image = get_color_image_from_track_path(path);
-        if track.image.is_some() {
-            println!("GOT IMAGE FROM DIR!!!!")
-        }
     }
 
     Some(track)

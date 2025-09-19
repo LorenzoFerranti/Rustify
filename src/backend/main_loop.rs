@@ -1,6 +1,5 @@
 use std::process::exit;
-use std::sync::Arc;
-use std::{process, thread};
+use std::thread;
 
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use eframe::egui::Context;
@@ -8,7 +7,6 @@ use eframe::egui::Context;
 use crate::backend::music_dir::MusicDir;
 use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
 use crate::settings::Settings;
-use crate::track_metadata::TrackMetaData;
 use crate::{messages, settings};
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;

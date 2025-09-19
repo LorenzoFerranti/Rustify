@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Write;
-use std::process;
+use std::{env, process};
 
 use serde::{Deserialize, Serialize};
 
@@ -14,9 +14,13 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
+        let dir: String = match env::current_dir() {
+            Ok(path) => path.to_string_lossy().into_owned(),
+            Err(_) => String::new(),
+        };
         Self {
-            root_music_path: "".to_string(),
-            volume: 1.0,
+            root_music_path: dir,
+            volume: 0.5,
         }
     }
 }

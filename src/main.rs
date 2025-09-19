@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use std::process::exit;
 use std::thread;
 
