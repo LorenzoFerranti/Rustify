@@ -22,7 +22,7 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
         match request_receiver.recv() {
             Ok(req) => match req {
                 Request::Track(path) => {
-                    println!("Loader: load request received: {path:?}");
+                    println!("Loader: load request received: {}", path.display());
                     handle_request(path, &response_sender)
                 }
             },

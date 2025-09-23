@@ -101,7 +101,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                 data.queued_tracks = 0;
 
                 // new music dir and load tracks
-                match MusicDir::new(path.clone()) {
+                match MusicDir::new(&path) {
                     Ok(md) => {
                         data.root_music_dir = Some(md);
                         load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
