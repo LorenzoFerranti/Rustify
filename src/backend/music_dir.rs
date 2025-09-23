@@ -1,12 +1,11 @@
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 use crate::music_dir_creation_error::MusicDirCreationError;
 use rand::random;
 
 pub struct MusicDir {
-    sub_dirs: Vec<Rc<MusicDir>>,
+    sub_dirs: Vec<MusicDir>,
     track_paths: Vec<PathBuf>,
 }
 
@@ -76,7 +75,7 @@ fn get_all_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
     }
 }
 
-fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
+fn get_sub_dirs(path: &Path) -> Option<Vec<MusicDir>> {
     let mut res = vec![];
     match read_dir(path) {
         Ok(dir_iter) => {
@@ -84,7 +83,7 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
                 let path_buf = entry.path();
                 match MusicDir::new(path_buf) {
                     Ok(music_dir) => {
-                        res.push(Rc::new(music_dir));
+                        res.push(music_dir);
                     }
                     Err(_) => {}
                 }
