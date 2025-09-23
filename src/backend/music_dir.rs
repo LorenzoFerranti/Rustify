@@ -12,34 +12,28 @@ pub struct MusicDir {
 
 impl MusicDir {
     pub fn new(path: PathBuf) -> Result<Self, MusicDirCreationError> {
-        // println!("Creating {}", path.display());
+        println!("Creating {}", path.display());
         if !path.exists() {
-            // println!("DOESNT EXIST");
+            println!("DOESNT EXIST");
             return Err(MusicDirCreationError::NotFound);
         }
         if !path.is_dir() {
-            // println!("NOT DIR");
+            println!("NOT DIR");
             return Err(MusicDirCreationError::NotDir);
         }
         let tracks = get_all_mp3s(&path);
         let sub_dirs = get_sub_dirs(&path);
-        if tracks.is_none() && sub_dirs.is_err() {
-            // println!("EMPTY");
+        if tracks.is_none() && sub_dirs.is_none() {
+            println!("EMPTY");
             Err(MusicDirCreationError::Empty)
         } else {
-            // println!("{} created!!!!!", path.display());
+            println!("{} created!!!!!", path.display());
             Ok(Self {
-                //path,
                 sub_dirs: sub_dirs.unwrap_or_default(),
                 track_paths: tracks.unwrap_or_default(),
             })
         }
     }
-
-    // TODO: this is unused
-    // pub fn is_empty(&self) -> bool {
-    //     self.track_paths.is_empty() && self.sub_dirs.is_empty()
-    // }
 
     pub fn has_tracks(&self) -> bool {
         !self.track_paths.is_empty()
@@ -82,7 +76,7 @@ fn get_all_mp3s(path: &Path) -> Option<Vec<PathBuf>> {
     }
 }
 
-fn get_sub_dirs(path: &Path) -> Result<Vec<Rc<MusicDir>>, MusicDirCreationError> {
+fn get_sub_dirs(path: &Path) -> Option<Vec<Rc<MusicDir>>> {
     let mut res = vec![];
     match read_dir(path) {
         Ok(dir_iter) => {
@@ -92,25 +86,18 @@ fn get_sub_dirs(path: &Path) -> Result<Vec<Rc<MusicDir>>, MusicDirCreationError>
                     Ok(music_dir) => {
                         res.push(Rc::new(music_dir));
                     }
-                    Err(e) => match e {
-                        MusicDirCreationError::NotFound => {}
-                        MusicDirCreationError::NotDir => {}
-                        MusicDirCreationError::Empty => {}
-                        MusicDirCreationError::Unknown => {
-                            return Err(MusicDirCreationError::Unknown);
-                        }
-                    },
+                    Err(_) => {}
                 }
             }
             if res.is_empty() {
-                Err(MusicDirCreationError::Empty)
+                None
             } else {
-                Ok(res)
+                Some(res)
             }
         }
         Err(e) => {
             eprintln!("Error in reading dir {}: {e}", path.display());
-            Err(MusicDirCreationError::Unknown)
+            None
         }
     }
 }
