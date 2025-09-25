@@ -10,8 +10,6 @@ pub(crate) struct MusicDir {
     music_dir: _MusicDir,
 }
 
-// test
-
 impl MusicDir {
     pub(crate) fn new(root_path: &Path) -> Result<Self, MusicDirCreationError> {
         let music_dir = _MusicDir::new(root_path)?;
@@ -28,6 +26,10 @@ impl MusicDir {
             None => relative_path,
             Some(p) => p.join(relative_path),
         }
+    }
+
+    pub(crate) fn print_tree(&self) {
+        self.music_dir.print_tree(0);
     }
 }
 
@@ -114,7 +116,7 @@ impl _MusicDir {
         } else {
             self.total_sub_tracks_played += 1;
             let index = get_random_index(&least_played_dirs);
-            let sub_path = least_played_dirs[index].get_random_track_path();
+            let sub_path = least_played_dirs[index].get_next_track_path();
             PathBuf::from(&self.name).join(sub_path)
         }
     }
@@ -137,6 +139,16 @@ impl _MusicDir {
             Some((self.total_local_tracks_played as f32) / (self.local_track_names.len() as f32))
         } else {
             None
+        }
+    }
+
+    fn print_tree(&self, indent: u32) {
+        for _ in 0..indent {
+            print!("    ");
+        }
+        print!("{} - {}\n", self.name.to_string_lossy(), self.get_played_factor());
+        for dir in &self.sub_dirs {
+            dir.print_tree(indent + 1);
         }
     }
 }
@@ -163,6 +175,7 @@ fn get_all_track_names(path: &Path) -> Option<Vec<OsString>> {
     } else {
         Some(res)
     }
+
 }
 
 fn get_sub_dirs(path: &Path) -> Option<Vec<_MusicDir>> {

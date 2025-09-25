@@ -103,6 +103,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                 // new music dir and load tracks
                 match MusicDir::new(&path) {
                     Ok(md) => {
+                        md.print_tree();
                         data.root_music_dir = Some(md);
                         load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
 
@@ -257,7 +258,7 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
             .root_music_dir
             .as_mut()
             .expect("Error: no music dir")
-            .get_random_track_path();
+            .get_next_track_path();
         println!(
             "[MAIN] Sending load request, path = {}",
             random_path.display()
@@ -271,4 +272,5 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
         "[MAIN] {amount} loading requests sent, loading_tracks = {}",
         data.loading_tracks
     );
+    data.root_music_dir.as_ref().unwrap().print_tree();
 }
