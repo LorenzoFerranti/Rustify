@@ -10,6 +10,8 @@ pub(crate) struct MusicDir {
     music_dir: _MusicDir,
 }
 
+// test
+
 impl MusicDir {
     pub(crate) fn new(root_path: &Path) -> Result<Self, MusicDirCreationError> {
         let music_dir = _MusicDir::new(root_path)?;
