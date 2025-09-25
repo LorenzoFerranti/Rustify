@@ -20,19 +20,22 @@ impl MusicDir {
         })
     }
 
-    pub(crate) fn get_random_track_path(&self) -> Option<PathBuf> {
-        let relative_path = self.music_dir.get_random_track_path()?;
+    pub(crate) fn get_next_track_path(&mut self) -> PathBuf {
+        let relative_path = self.music_dir.get_next_track_path();
         match &self.root_path {
-            None => Some(relative_path),
-            Some(p) => Some(p.join(relative_path)),
+            None => relative_path,
+            Some(p) => p.join(relative_path),
         }
     }
 }
 
 struct _MusicDir {
     name: OsString,
+    total_sub_tracks_played: u32,
+    total_sub_tracks: u32,
     sub_dirs: Vec<_MusicDir>,
-    track_names: Vec<OsString>,
+    total_local_tracks_played: u32,
+    local_track_names: Vec<OsString>,
 }
 
 impl _MusicDir {
@@ -53,39 +56,86 @@ impl _MusicDir {
         let tracks = get_all_track_names(&path);
         let sub_dirs = get_sub_dirs(&path);
         if tracks.is_none() && sub_dirs.is_none() {
-            println!("EMPTY");
             Err(MusicDirCreationError::Empty)
         } else {
-            println!("{} created!!!!!", path.display());
+            let mut total_sub_tracks = match tracks.as_ref() {
+                None => 0,
+                Some(v) => v.len() as u32,
+            };
+            if let Some(dirs) = sub_dirs.as_ref() {
+                for dir in dirs {
+                    total_sub_tracks += dir.total_sub_tracks;
+                }
+            }
             Ok(Self {
                 name,
+                total_sub_tracks_played: 0,
+                total_sub_tracks,
                 sub_dirs: sub_dirs.unwrap_or_default(),
-                track_names: tracks.unwrap_or_default(),
+                total_local_tracks_played: 0,
+                local_track_names: tracks.unwrap_or_default(),
             })
         }
     }
 
-    fn has_tracks(&self) -> bool {
-        !self.track_names.is_empty()
+    fn get_next_track_path(&mut self) -> PathBuf {
+        let mut least_played_factor: Option<f32> = self.get_local_played_factor();
+        let mut least_played_dirs: Vec<&mut _MusicDir> = Vec::new();
+
+        for dir in self.sub_dirs.iter_mut() {
+            match least_played_factor {
+                None => {
+                    least_played_factor = Some(dir.get_played_factor());
+                    least_played_dirs.push(dir);
+                }
+                Some(lpf) => {
+                    if dir.get_played_factor() < lpf {
+                        least_played_factor = Some(dir.get_played_factor());
+                        least_played_dirs.clear();
+                        least_played_dirs.push(dir);
+                    } else if dir.get_played_factor() == lpf {
+                        least_played_dirs.push(dir);
+                    }
+                }
+            }
+        }
+
+        if least_played_dirs.is_empty() {
+            match least_played_factor {
+                None => unreachable!(), // this means self has no local tracks and no sub dirs
+                Some(_) => {
+                    self.total_local_tracks_played += 1;
+                    let n = get_random_index(&self.local_track_names);
+                    Path::new(&self.name).join(PathBuf::from(&self.local_track_names[n]))
+                }
+            }
+        } else {
+            self.total_sub_tracks_played += 1;
+            let index = get_random_index(&least_played_dirs);
+            let sub_path = least_played_dirs[index].get_random_track_path();
+            PathBuf::from(&self.name).join(sub_path)
+        }
     }
 
-    fn has_sub_dirs(&self) -> bool {
-        !self.sub_dirs.is_empty()
+    fn get_played_factor(&self) -> f32 {
+        (self.total_local_tracks_played + self.total_sub_tracks_played) as f32
+            / (self.local_track_names.len() as f32 + self.total_sub_tracks as f32)
     }
 
-    fn get_random_track_path(&self) -> Option<PathBuf> {
-        if self.has_tracks() {
-            let n = get_random_index(&self.track_names);
-            let res = Some(Path::new(&self.name).join(PathBuf::from(&self.track_names[n])));
-            return res;
+    fn get_sub_played_factor(&self) -> Option<f32> {
+        if self.total_sub_tracks > 0 {
+            Some((self.total_sub_tracks_played as f32) / (self.total_sub_tracks as f32))
+        } else {
+            None
         }
-        if self.has_sub_dirs() {
-            let n = get_random_index(&self.sub_dirs);
-            let sub_path = self.sub_dirs[n].get_random_track_path()?;
-            let res = Some(PathBuf::from(&self.name).join(sub_path));
-            return res;
+    }
+
+    fn get_local_played_factor(&self) -> Option<f32> {
+        if self.local_track_names.len() > 0 {
+            Some((self.total_local_tracks_played as f32) / (self.local_track_names.len() as f32))
+        } else {
+            None
         }
-        None
     }
 }
 

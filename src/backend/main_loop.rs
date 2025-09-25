@@ -255,10 +255,9 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
         // println!("Loading {i} / {amount}");
         let random_path = data
             .root_music_dir
-            .as_ref()
+            .as_mut()
             .expect("Error: no music dir")
-            .get_random_track_path()
-            .unwrap();
+            .get_random_track_path();
         println!(
             "[MAIN] Sending load request, path = {}",
             random_path.display()
