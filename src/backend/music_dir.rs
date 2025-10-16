@@ -39,7 +39,7 @@ struct _MusicDir {
     total_sub_tracks: u32,
     sub_dirs: Vec<_MusicDir>,
     total_local_tracks_played: u32,
-    local_track_names: Vec<OsString>,
+    local_tracks: Vec<(OsString, u32)>,
 }
 
 impl _MusicDir {
@@ -57,7 +57,7 @@ impl _MusicDir {
             None => return Err(MusicDirCreationError::Unknown),
             Some(name) => name.to_os_string(),
         };
-        let tracks = get_all_track_names(&path);
+        let tracks = get_all_tracks(&path);
         let sub_dirs = get_sub_dirs(&path);
         if tracks.is_none() && sub_dirs.is_none() {
             Err(MusicDirCreationError::Empty)
@@ -77,7 +77,7 @@ impl _MusicDir {
                 total_sub_tracks,
                 sub_dirs: sub_dirs.unwrap_or_default(),
                 total_local_tracks_played: 0,
-                local_track_names: tracks.unwrap_or_default(),
+                local_tracks: tracks.unwrap_or_default(),
             })
         }
     }
@@ -109,8 +109,9 @@ impl _MusicDir {
                 None => unreachable!(), // this means self has no local tracks and no sub dirs
                 Some(_) => {
                     self.total_local_tracks_played += 1;
-                    let n = get_random_index(&self.local_track_names);
-                    Path::new(&self.name).join(PathBuf::from(&self.local_track_names[n]))
+                    // TODO: dont clone
+                    let track_name = self.get_least_played_local_track().clone();
+                    Path::new(&self.name).join(PathBuf::from(track_name))
                 }
             }
         } else {
@@ -123,7 +124,7 @@ impl _MusicDir {
 
     fn get_played_factor(&self) -> f32 {
         (self.total_local_tracks_played + self.total_sub_tracks_played) as f32
-            / (self.local_track_names.len() as f32 + self.total_sub_tracks as f32)
+            / (self.local_tracks.len() as f32 + self.total_sub_tracks as f32)
     }
 
     fn get_sub_played_factor(&self) -> Option<f32> {
@@ -135,11 +136,38 @@ impl _MusicDir {
     }
 
     fn get_local_played_factor(&self) -> Option<f32> {
-        if self.local_track_names.len() > 0 {
-            Some((self.total_local_tracks_played as f32) / (self.local_track_names.len() as f32))
+        if self.local_tracks.len() > 0 {
+            Some((self.total_local_tracks_played as f32) / (self.local_tracks.len() as f32))
         } else {
             None
         }
+    }
+
+    fn get_least_played_local_track(&mut self) -> &OsString {
+        let mut least_played_factor: Option<u32> = None;
+        let mut least_played_tracks_ids: Vec<usize> = Vec::new();
+
+        for (track_index, (_, played_factor)) in self.local_tracks.iter().enumerate() {
+            match least_played_factor {
+                None => {
+                    least_played_factor = Some(*played_factor);
+                    least_played_tracks_ids.push(track_index);
+                }
+                Some(lpf) => {
+                    if *played_factor < lpf {
+                        least_played_factor = Some(*played_factor);
+                        least_played_tracks_ids.clear();
+                        least_played_tracks_ids.push(track_index);
+                    } else if *played_factor == lpf {
+                        least_played_tracks_ids.push(track_index);
+                    }
+                }
+            }
+        }
+        let random_index = get_random_index(&least_played_tracks_ids);
+        let track_index = least_played_tracks_ids[random_index];
+        self.local_tracks[track_index].1 += 1;
+        &self.local_tracks[track_index].0
     }
 
     fn print_tree(&self, indent: u32) {
@@ -147,13 +175,19 @@ impl _MusicDir {
             print!("    ");
         }
         print!("{} - {}\n", self.name.to_string_lossy(), self.get_played_factor());
+        for (name, played) in &self.local_tracks {
+            for _ in 0..indent+1 {
+                print!("    ");
+            }
+            print!("{:?} - {played}\n", name)
+        }
         for dir in &self.sub_dirs {
             dir.print_tree(indent + 1);
         }
     }
 }
 
-fn get_all_track_names(path: &Path) -> Option<Vec<OsString>> {
+fn get_all_tracks(path: &Path) -> Option<Vec<(OsString, u32)>> {
     const VALID_EXTENSIONS: [&str; 1] = ["mp3"];
     let mut res = vec![];
     let dir_iter = read_dir(path).ok()?;
@@ -164,7 +198,7 @@ fn get_all_track_names(path: &Path) -> Option<Vec<OsString>> {
         if let Some(ext) = entry_path.extension().and_then(|e| e.to_str()) {
             if VALID_EXTENSIONS.contains(&ext) {
                 if let Some(name) = entry_path.file_name() {
-                    res.push(name.to_os_string())
+                    res.push((name.to_os_string(), 0))
                 }
             }
         }
@@ -204,6 +238,9 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<_MusicDir>> {
     }
 }
 
+
+
+// TODO: check if length > 0
 fn get_random_index<T>(v: &[T]) -> usize {
     random::<usize>() % v.len()
 }
