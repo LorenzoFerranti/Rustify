@@ -93,7 +93,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
     match res {
         Ok(req) => match req {
             messages::Request::ChangeRoot(path) => {
-                println!("[MAIN] received ChangeRoot request");
+                //println!("[MAIN] received ChangeRoot request");
                 // send clear
                 data.player_req_sender
                     .send(player_messages::Request::Clear)
@@ -129,13 +129,13 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                 }
             }
             messages::Request::Play => {
-                println!("Backend Main: Play Sent");
+                // println!("Backend Main: Play Sent");
                 data.player_req_sender
                     .send(player_messages::Request::Play)
                     .unwrap();
             }
             messages::Request::Pause => {
-                println!("Backend Main: pause Sent");
+                // println!("Backend Main: pause Sent");
                 data.player_req_sender
                     .send(player_messages::Request::Pause)
                     .unwrap();
@@ -209,16 +209,16 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                 player_messages::Event::NewTrackPlaying(metadata) => match metadata {
                     None => {}
                     Some(metadata) => {
-                        println!(
-                            "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
-                            metadata.name, data.queued_tracks
-                        );
+                        // println!(
+                        //     "[MAIN] Event::NewTrackPlaying received, name = {}. queued_tracks = {}",
+                        //     metadata.name, data.queued_tracks
+                        // );
                         data.event_sender
                             .send(messages::Event::NewTrackPlaying(Some(metadata)))
                             .unwrap();
                         let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
                             - ((data.queued_tracks + data.loading_tracks) as i16);
-                        println!("[MAIN] Tracks to load: {tracks_to_load}");
+                        // println!("[MAIN] Tracks to load: {tracks_to_load}");
                         if tracks_to_load > 0 {
                             load_random_tracks(tracks_to_load as u8, data);
                         }
@@ -251,7 +251,7 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
 }
 
 fn load_random_tracks(amount: u8, data: &mut ThreadData) {
-    println!("[MAIN] Will send {amount} loading requests");
+    // println!("[MAIN] Will send {amount} loading requests");
     for _ in 0..amount {
         // println!("Loading {i} / {amount}");
         let random_path = data
@@ -259,18 +259,18 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
             .as_mut()
             .expect("Error: no music dir")
             .get_next_track_path();
-        println!(
-            "[MAIN] Sending load request, path = {}",
-            random_path.display()
-        );
+        // println!(
+        //     "[MAIN] Sending load request, path = {}",
+        //     random_path.display()
+        // );
         data.load_req_sender
             .send(loader_messages::Request::Track(random_path))
             .unwrap();
     }
     data.loading_tracks += amount;
-    println!(
-        "[MAIN] {amount} loading requests sent, loading_tracks = {}",
-        data.loading_tracks
-    );
+    // println!(
+    //     "[MAIN] {amount} loading requests sent, loading_tracks = {}",
+    //     data.loading_tracks
+    // );
     data.root_music_dir.as_ref().unwrap().print_tree();
 }

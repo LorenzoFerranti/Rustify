@@ -62,13 +62,15 @@ impl _MusicDir {
         if tracks.is_none() && sub_dirs.is_none() {
             Err(MusicDirCreationError::Empty)
         } else {
-            let mut total_sub_tracks = match tracks.as_ref() {
-                None => 0,
-                Some(v) => v.len() as u32,
-            };
+            let mut total_sub_tracks = 0;
+
+            // let mut total_sub_tracks = match tracks.as_ref() {
+            //     None => 0,
+            //     Some(v) => v.len() as u32,
+            // };
             if let Some(dirs) = sub_dirs.as_ref() {
                 for dir in dirs {
-                    total_sub_tracks += dir.total_sub_tracks;
+                    total_sub_tracks += dir.get_total_tracks();
                 }
             }
             Ok(Self {
@@ -120,6 +122,10 @@ impl _MusicDir {
             let sub_path = least_played_dirs[index].get_next_track_path();
             PathBuf::from(&self.name).join(sub_path)
         }
+    }
+
+    fn get_total_tracks(&self) -> u32 {
+        self.total_sub_tracks + (self.local_tracks.len() as u32)
     }
 
     fn get_played_factor(&self) -> f32 {
@@ -174,9 +180,17 @@ impl _MusicDir {
         for _ in 0..indent {
             print!("    ");
         }
-        print!("{} - {}\n", self.name.to_string_lossy(), self.get_played_factor());
+        print!(
+            "{} - lt:{}, st:{}, pf:{}, lpf:{:?}, spf:{:?}\n",
+            self.name.to_string_lossy(),
+            self.local_tracks.len(),
+            self.total_sub_tracks,
+            self.get_played_factor(),
+            self.get_local_played_factor(),
+            self.get_sub_played_factor(),
+        );
         for (name, played) in &self.local_tracks {
-            for _ in 0..indent+1 {
+            for _ in 0..indent + 1 {
                 print!("    ");
             }
             print!("{:?} - {played}\n", name)
@@ -209,7 +223,6 @@ fn get_all_tracks(path: &Path) -> Option<Vec<(OsString, u32)>> {
     } else {
         Some(res)
     }
-
 }
 
 fn get_sub_dirs(path: &Path) -> Option<Vec<_MusicDir>> {
@@ -237,8 +250,6 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<_MusicDir>> {
         }
     }
 }
-
-
 
 // TODO: check if length > 0
 fn get_random_index<T>(v: &[T]) -> usize {

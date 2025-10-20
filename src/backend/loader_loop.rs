@@ -22,7 +22,7 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
         match request_receiver.recv() {
             Ok(req) => match req {
                 Request::Track(path) => {
-                    println!("Loader: load request received: {}", path.display());
+                    //println!("Loader: load request received: {}", path.display());
                     handle_request(path, &response_sender)
                 }
             },
@@ -60,7 +60,7 @@ fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
     response_sender
         .send(Response::Track(file, metadata))
         .unwrap();
-    println!("Loader: Load response sent ({path:?})");
+    // println!("Loader: Load response sent ({path:?})");
 }
 
 pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {

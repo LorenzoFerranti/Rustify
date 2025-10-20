@@ -75,10 +75,10 @@ fn handle_request(
                 }
             }
             Request::Play => {
-                println!("Player thread: received play");
-                println!("Sink is paused: {0}", sink.is_paused());
+                // println!("Player thread: received play");
+                // println!("Sink is paused: {0}", sink.is_paused());
                 sink.play();
-                println!("Sink is paused: {0}", sink.is_paused());
+                // println!("Sink is paused: {0}", sink.is_paused());
 
                 event_sender.send(Event::NowPlaying).unwrap();
             }

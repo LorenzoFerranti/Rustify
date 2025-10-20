@@ -133,11 +133,11 @@ impl App {
                 AppState::Playing(x, _, pba) => {
                     match pba {
                         PauseButtonAction::Pause => {
-                            println!("UI: Pause sent");
+                            // println!("UI: Pause sent");
                             self.req_sender.send(Request::Pause).unwrap()
                         }
                         PauseButtonAction::Play => {
-                            println!("UI: Play sent");
+                            // println!("UI: Play sent");
                             self.req_sender.send(Request::Play).unwrap()
                         }
                     }
