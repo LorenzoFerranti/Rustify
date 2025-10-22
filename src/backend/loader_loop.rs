@@ -35,43 +35,41 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
 }
 
 fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
-    // metadata
-    let file = File::open(&path).unwrap();
-    let source = Decoder::new(file).unwrap();
-    let duration = source.total_duration();
-    let mut metadata = match get_track_metadata(&path) {
-        None => {
-            let mut m = TrackMetaData::default();
-            if let Some(name) = path.file_name() {
-                if let Some(name) = name.to_str() {
-                    m.name = name.to_string();
-                }
-            }
-            m
-        }
-        Some(m) => m,
-    };
-    metadata.duration = duration;
-    let metadata = Arc::new(metadata);
-
-    // file (again)
+    let metadata = get_track_metadata(&path);
+    // TODO: can it be done without opening twice?
     let file = File::open(&path).unwrap();
 
     response_sender
-        .send(Response::Track(file, metadata))
+        .send(Response::Track(file, Arc::from(metadata)))
         .unwrap();
     // println!("Loader: Load response sent ({path:?})");
 }
 
-pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
+pub fn get_track_metadata(path: &Path) -> TrackMetaData {
+    // get file metadata
+    let mut md = extract_metadata(path).unwrap_or_default();
+    if md.name == TrackMetaData::default().name {
+        if let Some(name) = path.file_name() {
+            if let Some(name) = name.to_str() {
+                md.name = name.to_string();
+            }
+        }
+    }
+
+    // get duration
+    let file = File::open(&path).unwrap();
+    let source = Decoder::new(file).unwrap();
+    let duration = source.total_duration();
+    md.duration = duration;
+
+    md
+}
+
+fn extract_metadata(path: &Path) -> Option<TrackMetaData> {
     let file = File::open(path).ok()?;
-
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
-
     let probe = get_probe();
     let hint = Hint::new();
-
-    // probe file
     let mut probed = probe
         .format(
             &hint,
@@ -81,35 +79,46 @@ pub fn get_track_metadata(path: &Path) -> Option<TrackMetaData> {
         )
         .map_err(|e| format!("Failed to probe format: {}", e))
         .ok()?;
-
-    // get metadata
     let binding = probed.metadata.get()?;
+    let metadata_reader = binding.current()?;
 
-    let current_metadata = binding.current()?;
-
-    let mut track = TrackMetaData::default();
+    let mut res = TrackMetaData::default();
 
     // read tags
-    for tag in current_metadata.tags() {
+    let mut tag_found: bool = false;
+    for tag in metadata_reader.tags() {
         if let Some(std_key) = tag.std_key {
             let value = tag.value.to_string();
             match std_key {
-                StandardTagKey::Album => track.album = value,
-                StandardTagKey::Artist => track.artist = value,
-                StandardTagKey::TrackTitle => track.name = value,
+                StandardTagKey::Album => {
+                    res.album = value;
+                    tag_found = true;
+                }
+                StandardTagKey::Artist => {
+                    res.artist = value;
+                    tag_found = true;
+                }
+                StandardTagKey::TrackTitle => {
+                    res.name = value;
+                    tag_found = true;
+                }
                 _ => {}
             }
         }
     }
 
-    // read cover image
-    if let Some(v) = current_metadata.visuals().first() {
-        track.image = get_color_image_from_visual(v);
-    } else {
-        track.image = get_color_image_from_track_path(path);
+    if !tag_found {
+        return None;
     }
 
-    Some(track)
+    // read cover image
+    if let Some(v) = metadata_reader.visuals().first() {
+        res.image = get_color_image_from_visual(v);
+    } else {
+        res.image = get_color_image_from_track_path(path);
+    }
+
+    Some(res)
 }
 
 fn get_color_image_from_visual(v: &Visual) -> Option<ColorImage> {
