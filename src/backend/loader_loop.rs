@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -17,13 +18,23 @@ use crate::backend::loader_messages::{Request, Response};
 use crate::image_utils;
 use crate::track_metadata::TrackMetaData;
 
+#[derive(PartialEq, Eq)]
+enum State {
+    Active,
+    WaitingForReset,
+}
+
 pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response>) {
+    let mut state = State::Active;
     loop {
         match request_receiver.recv() {
             Ok(req) => match req {
                 Request::Track(path) => {
                     //println!("Loader: load request received: {}", path.display());
-                    handle_request(path, &response_sender)
+                    handle_request(&mut state, path, &response_sender)
+                }
+                Request::ResetCompleted => {
+                    state = State::Active;
                 }
             },
             Err(e) => {
@@ -34,15 +45,29 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
     }
 }
 
-fn handle_request(path: PathBuf, response_sender: &Sender<Response>) {
-    let metadata = get_track_metadata(&path);
-    // TODO: can it be done without opening twice?
-    let file = File::open(&path).unwrap();
 
-    response_sender
-        .send(Response::Track(file, Arc::from(metadata)))
-        .unwrap();
-    // println!("Loader: Load response sent ({path:?})");
+fn handle_request(state: &mut State, path: PathBuf, response_sender: &Sender<Response>) {
+    // drop every request if MusicDir has not been reset yet
+    if *state == State::WaitingForReset {
+        return;
+    }
+    match File::open(&path) {
+        Ok(file) => {
+            let metadata = get_track_metadata(&path);
+            response_sender
+                .send(Response::Track(file, Arc::from(metadata)))
+                .unwrap();
+            // println!("Loader: Load response sent ({path:?})");
+        }
+        Err(e) => {
+            // files were moved, MusicDir needs a reset
+            eprintln!("{e}");
+            *state = State::WaitingForReset;
+            response_sender.send(Response::NotFound).unwrap();
+        }
+    }
+
+
 }
 
 pub fn get_track_metadata(path: &Path) -> TrackMetaData {

@@ -1,13 +1,13 @@
+use std::path::Path;
 use std::process::exit;
 use std::thread;
-
-use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
-use eframe::egui::Context;
 
 use crate::backend::music_dir::MusicDir;
 use crate::backend::{loader_loop, loader_messages, player_loop, player_messages};
 use crate::settings::Settings;
 use crate::{messages, settings};
+use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
+use eframe::egui::Context;
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
@@ -17,6 +17,9 @@ struct ThreadData {
     queued_tracks: u8,
     loading_tracks: u8,
     waiting_jump_response: bool,
+    // true if main loop is waiting for the frontend to display an error page and stop
+    // sending requests. While true, ignore all requests.
+    waiting_error_page: bool,
     ctx: Option<Context>,
     event_sender: Sender<messages::Event>,
     player_req_sender: Sender<player_messages::Request>,
@@ -36,6 +39,7 @@ impl ThreadData {
             queued_tracks: 0,
             loading_tracks: 0,
             waiting_jump_response: false,
+            waiting_error_page: false,
             ctx: None,
             event_sender,
             player_req_sender,
@@ -84,7 +88,8 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
             recv(player_event_receiver) -> res => handle_player_event(
                 res,
                 &mut data
-            )
+            ),
+            // default => println!("not ready"),
         }
     }
 }
@@ -93,65 +98,59 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
     match res {
         Ok(req) => match req {
             messages::Request::ChangeRoot(path) => {
+                if data.waiting_error_page {
+                    return;
+                }
                 //println!("[MAIN] received ChangeRoot request");
                 // send clear
                 data.player_req_sender
                     .send(player_messages::Request::Clear)
                     .unwrap();
                 data.queued_tracks = 0;
+                data.loading_tracks = 0;
+                data.waiting_jump_response = false;
 
-                // new music dir and load tracks
-                match MusicDir::new(&path) {
-                    Ok(md) => {
-                        md.print_tree();
-                        data.root_music_dir = Some(md);
-                        load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
-
-                        // update settings
-                        data.settings.root_music_path =
-                            path.into_os_string().into_string().unwrap();
-                        settings::write(&data.settings);
-
-                        // Send play just to be sure
-                        data.player_req_sender
-                            .send(player_messages::Request::Play)
-                            .unwrap();
-                    }
-                    Err(e) => {
-                        data.root_music_dir = None;
-                        data.player_req_sender
-                            .send(player_messages::Request::Clear)
-                            .unwrap();
-                        data.event_sender
-                            .send(messages::Event::DirError(e))
-                            .unwrap();
-                    }
-                }
+                load_new_music_dir(&path, data);
             }
             messages::Request::Play => {
+                if data.waiting_error_page {
+                    return;
+                }
                 // println!("Backend Main: Play Sent");
                 data.player_req_sender
                     .send(player_messages::Request::Play)
                     .unwrap();
             }
             messages::Request::Pause => {
+                if data.waiting_error_page {
+                    return;
+                }
                 // println!("Backend Main: pause Sent");
                 data.player_req_sender
                     .send(player_messages::Request::Pause)
                     .unwrap();
             }
             messages::Request::JumpToFraction(f) => {
+                if data.waiting_error_page {
+                    return;
+                }
                 data.waiting_jump_response = true;
                 data.player_req_sender
                     .send(player_messages::Request::JumpToFraction(f))
                     .unwrap();
             }
             messages::Request::Skip => {
+                if data.waiting_error_page {
+                    return;
+                }
                 data.player_req_sender
                     .send(player_messages::Request::Skip)
                     .unwrap();
             }
             messages::Request::SetVolume(v) => {
+                if data.waiting_error_page {
+                    return;
+                }
                 data.player_req_sender
                     .send(player_messages::Request::SetVolume(v))
                     .unwrap();
@@ -162,6 +161,9 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
             }
             messages::Request::ProvideContext(c) => {
                 data.ctx = Some(c);
+            }
+            messages::Request::ErrorPageDisplayed => {
+                data.waiting_error_page = false;
             }
         },
         // TODO: handle this
@@ -183,10 +185,11 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
                     data.queued_tracks += 1;
                     data.loading_tracks -= 1
                 }
-                // TODO: handle this
-                loader_messages::Response::NotFound(path) => {
-                    println!("{path:?} not found!!!!!");
-                    exit(1);
+                loader_messages::Response::NotFound => {
+                    println!("not found!!!!!");
+                    data.waiting_error_page = true;
+                    data.event_sender.send(messages::Event::NotFoundError).unwrap();
+                    data.player_req_sender.send(player_messages::Request::Clear).unwrap();
                 }
             }
         }
@@ -250,6 +253,34 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
     }
 }
 
+fn load_new_music_dir(path: &Path, data: &mut ThreadData) {
+    match MusicDir::new(path) {
+        Ok(md) => {
+            md.print_tree();
+            data.root_music_dir = Some(md);
+            load_random_tracks(TRACK_QUEUE_FILL_UNTIL, data);
+
+            // update settings
+            data.settings.root_music_path = path.as_os_str().to_os_string().into_string().unwrap();
+            settings::write(&data.settings);
+
+            // Send play just to be sure
+            data.player_req_sender
+                .send(player_messages::Request::Play)
+                .unwrap();
+        }
+        Err(e) => {
+            data.root_music_dir = None;
+            data.player_req_sender
+                .send(player_messages::Request::Clear)
+                .unwrap();
+            data.event_sender
+                .send(messages::Event::DirError(e))
+                .unwrap();
+        }
+    }
+}
+
 fn load_random_tracks(amount: u8, data: &mut ThreadData) {
     // println!("[MAIN] Will send {amount} loading requests");
     for _ in 0..amount {
@@ -272,5 +303,5 @@ fn load_random_tracks(amount: u8, data: &mut ThreadData) {
     //     "[MAIN] {amount} loading requests sent, loading_tracks = {}",
     //     data.loading_tracks
     // );
-    data.root_music_dir.as_ref().unwrap().print_tree();
+    // data.root_music_dir.as_ref().unwrap().print_tree();
 }

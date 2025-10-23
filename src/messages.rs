@@ -16,6 +16,7 @@ pub enum Request {
     Skip,
     SetVolume(f32), // [0, 1]
     ProvideContext(Context),
+    ErrorPageDisplayed,
 }
 
 #[derive(Debug)]
@@ -27,4 +28,5 @@ pub enum Event {
     JumpedTo(Duration),       // [0, 1]
     NewSettings(Settings),
     DirError(MusicDirCreationError),
+    NotFoundError,
 }

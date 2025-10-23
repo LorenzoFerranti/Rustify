@@ -89,6 +89,7 @@ impl App {
             AppState::Empty(_) => unreachable!(),
             AppState::LoadingNewMusicDir => unreachable!(),
             AppState::Playing(pbs, _, _) => pbs == ProgressBarState::Active,
+            AppState::FileError => unreachable!(),
         };
         enabled &= self.get_current_track_duration() != None;
 
@@ -105,6 +106,7 @@ impl App {
                 AppState::Playing(_, x, y) => {
                     self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y)
                 }
+                AppState::FileError => unreachable!(),
             };
             self.req_sender
                 .send(Request::JumpToFraction(progress_fraction))
@@ -120,6 +122,7 @@ impl App {
                 PauseButtonAction::Pause => "⏸",
                 PauseButtonAction::Play => "▶",
             },
+            AppState::FileError => unreachable!(),
         };
 
         let response = ui.add_sized(
@@ -143,6 +146,7 @@ impl App {
                     }
                     self.state = AppState::Playing(x, PauseButtonState::WaitingForEvent, pba);
                 }
+                AppState::FileError => unreachable!(),
             };
         }
     }

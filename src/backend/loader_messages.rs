@@ -6,10 +6,11 @@ use crate::track_metadata::TrackMetaData;
 
 #[derive(Clone)]
 pub(crate) enum Request {
+    ResetCompleted,
     Track(PathBuf),
 }
 
 pub(crate) enum Response {
     Track(File, Arc<TrackMetaData>),
-    NotFound(PathBuf),
+    NotFound,
 }

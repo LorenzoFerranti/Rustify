@@ -2,7 +2,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::frontend::eframe_app::EmptyDisplayMessage::Error;
 use crate::image_utils;
 use crate::messages::{Event, Request};
 use crate::music_dir_creation_error::MusicDirCreationError;
@@ -19,6 +18,7 @@ pub(crate) enum AppState {
     Empty(EmptyDisplayMessage),
     LoadingNewMusicDir,
     Playing(ProgressBarState, PauseButtonState, PauseButtonAction),
+    FileError,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -108,6 +108,7 @@ impl App {
                                 PauseButtonAction::Pause,
                             );
                         }
+                        AppState::FileError => unreachable!(),
                     }
                 }
                 Event::ProgressUpdate(d) => match self.state {
@@ -119,6 +120,7 @@ impl App {
                         }
                         ProgressBarState::WaitingForJump => {}
                     },
+                    AppState::FileError => unreachable!(),
                 },
                 Event::JumpedTo(d) => match self.state {
                     AppState::Empty(_) => unreachable!(),
@@ -132,6 +134,7 @@ impl App {
                             self.state = AppState::Playing(ProgressBarState::Active, x, y);
                         }
                     },
+                    AppState::FileError => unreachable!(),
                 },
                 Event::NowPlaying => match self.state {
                     AppState::Empty(_) => unreachable!(),
@@ -140,6 +143,7 @@ impl App {
                         self.state =
                             AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
                     }
+                    AppState::FileError => unreachable!(),
                 },
                 Event::NowPaused => match self.state {
                     AppState::Empty(_) => unreachable!(),
@@ -148,13 +152,17 @@ impl App {
                         self.state =
                             AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
                     }
+                    AppState::FileError => unreachable!(),
                 },
                 Event::NewSettings(s) => {
                     self.volume_input = s.volume;
                     self.root_music_path_input = s.root_music_path;
                 }
                 Event::DirError(e) => {
-                    self.state = AppState::Empty(Error(e));
+                    self.state = AppState::Empty(EmptyDisplayMessage::Error(e));
+                }
+                Event::NotFoundError => {
+                    self.state = AppState::FileError;
                 }
             }
         }
@@ -206,21 +214,25 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.read_events(ctx);
-        self.spawn_path_top_panel(ctx);
         match self.state {
             AppState::Empty(message) => {
+                self.spawn_path_top_panel(ctx);
                 self.spawn_empty_central_panel(ctx, message);
             }
             AppState::LoadingNewMusicDir => {
                 self.spawn_loading_central_panel(ctx);
             }
             AppState::Playing(_, _, _) => {
+                self.spawn_path_top_panel(ctx);
                 self.spawn_track_bottom_panel(ctx);
                 if self.current_track_metadata.is_some() {
                     self.spawn_image_central_panel(ctx);
                 } else {
                     CentralPanel::default().show(ctx, |_| {});
                 }
+            }
+            AppState::FileError => {
+                self.spawn_file_error_central_panel(ctx);
             }
         }
     }

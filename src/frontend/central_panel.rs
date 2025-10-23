@@ -45,4 +45,12 @@ impl App {
             });
         });
     }
+
+    pub(crate) fn spawn_file_error_central_panel(&mut self, ctx: &Context) {
+        CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| {
+                ui.label("FILE ERROR");
+            });
+        });
+    }
 }
