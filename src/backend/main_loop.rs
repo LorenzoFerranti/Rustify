@@ -176,23 +176,25 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
 
 fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data: &mut ThreadData) {
     match res {
-        Ok(response) => {
-            match response {
-                loader_messages::Response::Track(source, metadata) => {
-                    data.player_req_sender
-                        .send(player_messages::Request::Enqueue(source, metadata))
-                        .unwrap();
-                    data.queued_tracks += 1;
-                    data.loading_tracks -= 1
-                }
-                loader_messages::Response::NotFound => {
-                    println!("not found!!!!!");
-                    data.waiting_error_page = true;
-                    data.event_sender.send(messages::Event::NotFoundError).unwrap();
-                    data.player_req_sender.send(player_messages::Request::Clear).unwrap();
-                }
+        Ok(response) => match response {
+            loader_messages::Response::Track(source, metadata) => {
+                data.player_req_sender
+                    .send(player_messages::Request::Enqueue(source, metadata))
+                    .unwrap();
+                data.queued_tracks += 1;
+                data.loading_tracks -= 1
             }
-        }
+            loader_messages::Response::NotFound => {
+                println!("not found!!!!!");
+                data.waiting_error_page = true;
+                data.event_sender
+                    .send(messages::Event::NotFoundError)
+                    .unwrap();
+                data.player_req_sender
+                    .send(player_messages::Request::Clear)
+                    .unwrap();
+            }
+        },
         Err(e) => {
             println!("Error in handle load response: {e:?}");
             exit(1);

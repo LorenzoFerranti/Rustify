@@ -207,7 +207,7 @@ impl App {
 
     pub(crate) fn get_current_track_duration(&self) -> Option<Duration> {
         let metadata = self.current_track_metadata.as_ref()?;
-        metadata.duration.clone()
+        metadata.duration
     }
 }
 

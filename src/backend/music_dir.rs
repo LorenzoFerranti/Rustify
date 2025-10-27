@@ -13,7 +13,7 @@ pub(crate) struct MusicDir {
 impl MusicDir {
     pub(crate) fn new(root_path: &Path) -> Result<Self, MusicDirCreationError> {
         let music_dir = _MusicDir::new(root_path)?;
-        let new_root_path = root_path.parent().and_then(|p| Some(p.to_path_buf()));
+        let new_root_path = root_path.parent().map(|p| p.to_path_buf());
         Ok(Self {
             root_path: new_root_path,
             music_dir,
@@ -57,8 +57,8 @@ impl _MusicDir {
             None => return Err(MusicDirCreationError::Unknown),
             Some(name) => name.to_os_string(),
         };
-        let tracks = get_all_tracks(&path);
-        let sub_dirs = get_sub_dirs(&path);
+        let tracks = get_all_tracks(path);
+        let sub_dirs = get_sub_dirs(path);
         if tracks.is_none() && sub_dirs.is_none() {
             Err(MusicDirCreationError::Empty)
         } else {
@@ -142,10 +142,10 @@ impl _MusicDir {
     }
 
     fn get_local_played_factor(&self) -> Option<f32> {
-        if self.local_tracks.len() > 0 {
-            Some((self.total_local_tracks_played as f32) / (self.local_tracks.len() as f32))
-        } else {
+        if self.local_tracks.is_empty() {
             None
+        } else {
+            Some((self.total_local_tracks_played as f32) / (self.local_tracks.len() as f32))
         }
     }
 
@@ -180,8 +180,8 @@ impl _MusicDir {
         for _ in 0..indent {
             print!("    ");
         }
-        print!(
-            "{} - lt:{}, st:{}, pf:{}, lpf:{:?}, spf:{:?}\n",
+        println!(
+            "{} - lt:{}, st:{}, pf:{}, lpf:{:?}, spf:{:?}",
             self.name.to_string_lossy(),
             self.local_tracks.len(),
             self.total_sub_tracks,
@@ -193,7 +193,7 @@ impl _MusicDir {
             for _ in 0..indent + 1 {
                 print!("    ");
             }
-            print!("{:?} - {played}\n", name)
+            println!("{:?} - {played}", name)
         }
         for dir in &self.sub_dirs {
             dir.print_tree(indent + 1);
@@ -231,11 +231,8 @@ fn get_sub_dirs(path: &Path) -> Option<Vec<_MusicDir>> {
         Ok(dir_iter) => {
             for entry in dir_iter.flatten() {
                 let entry_path = entry.path();
-                match _MusicDir::new(&entry_path) {
-                    Ok(music_dir) => {
-                        res.push(music_dir);
-                    }
-                    Err(_) => {}
+                if let Ok(music_dir) = _MusicDir::new(&entry_path) {
+                    res.push(music_dir);
                 }
             }
             if res.is_empty() {

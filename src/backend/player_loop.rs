@@ -19,7 +19,7 @@ pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
 
     let stream_handle =
         rodio::OutputStreamBuilder::open_default_stream().expect("open default audio stream");
-    let sink = Sink::connect_new(&stream_handle.mixer());
+    let sink = Sink::connect_new(stream_handle.mixer());
 
     loop {
         select! {

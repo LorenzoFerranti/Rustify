@@ -91,7 +91,7 @@ impl App {
             AppState::Playing(pbs, _, _) => pbs == ProgressBarState::Active,
             AppState::FileError => unreachable!(),
         };
-        enabled &= self.get_current_track_duration() != None;
+        enabled &= self.get_current_track_duration().is_some();
 
         let response = ui.add_enabled(
             enabled,

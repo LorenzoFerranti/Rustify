@@ -45,7 +45,6 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
     }
 }
 
-
 fn handle_request(state: &mut State, path: PathBuf, response_sender: &Sender<Response>) {
     // drop every request if MusicDir has not been reset yet
     if *state == State::WaitingForReset {
@@ -66,8 +65,6 @@ fn handle_request(state: &mut State, path: PathBuf, response_sender: &Sender<Res
             response_sender.send(Response::NotFound).unwrap();
         }
     }
-
-
 }
 
 pub fn get_track_metadata(path: &Path) -> TrackMetaData {
@@ -82,7 +79,7 @@ pub fn get_track_metadata(path: &Path) -> TrackMetaData {
     }
 
     // get duration
-    let file = File::open(&path).unwrap();
+    let file = File::open(path).unwrap();
     let source = Decoder::new(file).unwrap();
     let duration = source.total_duration();
     md.duration = duration;
