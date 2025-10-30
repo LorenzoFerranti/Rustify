@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use std::path::Path;
 use std::process::exit;
 use std::thread;
@@ -11,15 +12,24 @@ use eframe::egui::Context;
 
 const TRACK_QUEUE_FILL_UNTIL: u8 = 3;
 
+#[derive(PartialEq, Eq, Copy, Clone)]
+enum State {
+    Playing(PlayState),
+    WaitingForReset,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+enum PlayState {
+    Normal,
+    WaitingForJumpResponse,
+}
+
 struct ThreadData {
+    state: State,
     settings: Settings,
-    root_music_dir: Option<MusicDir>,
-    queued_tracks: u8,
-    loading_tracks: u8,
-    waiting_jump_response: bool,
-    // true if main loop is waiting for the frontend to display an error page and stop
-    // sending requests. While true, ignore all requests.
-    waiting_error_page: bool,
+    root_music_dir: Option<MusicDir>, // TODO: in playing state?
+    queued_tracks: u8,                // TODO: in playing state?
+    loading_tracks: u8,               // TODO: in playing state?
     ctx: Option<Context>,
     event_sender: Sender<messages::Event>,
     player_req_sender: Sender<player_messages::Request>,
@@ -34,12 +44,11 @@ impl ThreadData {
         load_req_sender: Sender<loader_messages::Request>,
     ) -> Self {
         Self {
+            state: State::WaitingForReset,
             settings,
             root_music_dir: None,
             queued_tracks: 0,
             loading_tracks: 0,
-            waiting_jump_response: false,
-            waiting_error_page: false,
             ctx: None,
             event_sender,
             player_req_sender,
@@ -89,7 +98,7 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
                 res,
                 &mut data
             ),
-            // default => println!("not ready"),
+            default => println!("q {} l {}", data.queued_tracks, data.loading_tracks),
         }
     }
 }
@@ -98,22 +107,24 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
     match res {
         Ok(req) => match req {
             messages::Request::ChangeRoot(path) => {
-                if data.waiting_error_page {
-                    return;
-                }
-                //println!("[MAIN] received ChangeRoot request");
-                // send clear
                 data.player_req_sender
                     .send(player_messages::Request::Clear)
                     .unwrap();
                 data.queued_tracks = 0;
                 data.loading_tracks = 0;
-                data.waiting_jump_response = false;
-
+                match data.state {
+                    State::Playing(_) => {}
+                    State::WaitingForReset => {
+                        data.load_req_sender
+                            .send(loader_messages::Request::ResetCompleted)
+                            .unwrap();
+                    }
+                }
+                data.state = State::Playing(PlayState::Normal);
                 load_new_music_dir(&path, data);
             }
             messages::Request::Play => {
-                if data.waiting_error_page {
+                if data.state == State::WaitingForReset {
                     return;
                 }
                 // println!("Backend Main: Play Sent");
@@ -122,7 +133,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .unwrap();
             }
             messages::Request::Pause => {
-                if data.waiting_error_page {
+                if data.state == State::WaitingForReset {
                     return;
                 }
                 // println!("Backend Main: pause Sent");
@@ -130,17 +141,20 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .send(player_messages::Request::Pause)
                     .unwrap();
             }
-            messages::Request::JumpToFraction(f) => {
-                if data.waiting_error_page {
-                    return;
-                }
-                data.waiting_jump_response = true;
-                data.player_req_sender
-                    .send(player_messages::Request::JumpToFraction(f))
-                    .unwrap();
-            }
+            messages::Request::JumpToFraction(f) => match data.state {
+                State::Playing(ps) => match ps {
+                    PlayState::Normal => {
+                        data.state = State::Playing(PlayState::WaitingForJumpResponse);
+                        data.player_req_sender
+                            .send(player_messages::Request::JumpToFraction(f))
+                            .unwrap();
+                    }
+                    PlayState::WaitingForJumpResponse => unreachable!(),
+                },
+                State::WaitingForReset => return,
+            },
             messages::Request::Skip => {
-                if data.waiting_error_page {
+                if data.state == State::WaitingForReset {
                     return;
                 }
                 data.player_req_sender
@@ -148,7 +162,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     .unwrap();
             }
             messages::Request::SetVolume(v) => {
-                if data.waiting_error_page {
+                if data.state == State::WaitingForReset {
                     return;
                 }
                 data.player_req_sender
@@ -161,9 +175,6 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
             }
             messages::Request::ProvideContext(c) => {
                 data.ctx = Some(c);
-            }
-            messages::Request::ErrorPageDisplayed => {
-                data.waiting_error_page = false;
             }
         },
         // TODO: handle this
@@ -186,7 +197,7 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
             }
             loader_messages::Response::NotFound => {
                 println!("not found!!!!!");
-                data.waiting_error_page = true;
+                data.state = State::WaitingForReset;
                 data.event_sender
                     .send(messages::Event::NotFoundError)
                     .unwrap();
@@ -232,11 +243,18 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                 player_messages::Event::TrackFinished => {
                     data.queued_tracks -= 1; // panics if underflow
                 }
-                player_messages::Event::JumpedTo(d) => {
-                    data.event_sender
-                        .send(messages::Event::JumpedTo(d))
-                        .unwrap();
-                }
+                player_messages::Event::JumpedTo(d) => match data.state {
+                    State::Playing(ps) => match ps {
+                        PlayState::Normal => unreachable!(),
+                        PlayState::WaitingForJumpResponse => {
+                            data.state = State::Playing(PlayState::Normal);
+                            data.event_sender
+                                .send(messages::Event::JumpedTo(d))
+                                .unwrap();
+                        }
+                    },
+                    State::WaitingForReset => {}
+                },
                 player_messages::Event::NowPlaying => {
                     data.event_sender.send(messages::Event::NowPlaying).unwrap();
                 }

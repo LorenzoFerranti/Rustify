@@ -10,36 +10,37 @@ use crate::track_metadata::TrackMetaData;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
 use eframe::{CreationContext, Frame};
+use rodio::play;
 
 const DEFAULT_TEXTURE_PATH: &str = "assets/cover.png";
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum AppState {
     Empty(EmptyDisplayMessage),
     LoadingNewMusicDir,
     Playing(ProgressBarState, PauseButtonState, PauseButtonAction),
-    FileError,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum EmptyDisplayMessage {
     SelectFolder,
-    Error(MusicDirCreationError),
+    InitError(MusicDirCreationError),
+    FileMoved,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum ProgressBarState {
     Active,
     WaitingForJump,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum PauseButtonState {
     Active,
     WaitingForEvent,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum PauseButtonAction {
     Pause,
     Play,
@@ -49,7 +50,8 @@ pub struct App {
     pub(crate) root_music_path_input: String,
     pub(crate) volume_input: f32,
     pub(crate) progress: Duration,
-    pub(crate) state: AppState,
+    pub(crate) current_state: AppState,
+    pub(crate) next_state: Option<AppState>,
     pub(crate) current_track_metadata: Option<Arc<TrackMetaData>>,
     pub(crate) current_texture: Option<TextureHandle>,
     pub(crate) default_texture: TextureHandle,
@@ -74,7 +76,8 @@ impl App {
             root_music_path_input: initial_settings.root_music_path,
             volume_input: initial_settings.volume,
             progress: Duration::from_secs(0),
-            state: AppState::Empty(EmptyDisplayMessage::SelectFolder),
+            current_state: AppState::Empty(EmptyDisplayMessage::SelectFolder),
+            next_state: None,
             current_track_metadata: None,
             current_texture: None,
             default_texture,
@@ -83,6 +86,7 @@ impl App {
         }
     }
 
+    // the state can be directly changed when reading events
     fn read_events(&mut self, ctx: &Context) {
         let events: Vec<_> = self.event_receiver.try_iter().collect();
         for e in events {
@@ -90,11 +94,11 @@ impl App {
                 Event::NewTrackPlaying(metadata) => {
                     let was_some: bool = metadata.is_some();
                     self.update_metadata(ctx, metadata);
-                    match self.state {
+                    match self.current_state {
                         AppState::Empty(_) => {} // happens during music dir loading error
                         AppState::LoadingNewMusicDir => {
                             if was_some {
-                                self.state = AppState::Playing(
+                                self.current_state = AppState::Playing(
                                     ProgressBarState::Active,
                                     PauseButtonState::Active,
                                     PauseButtonAction::Pause,
@@ -102,16 +106,15 @@ impl App {
                             }
                         }
                         AppState::Playing(_, _, _) => {
-                            self.state = AppState::Playing(
+                            self.current_state = AppState::Playing(
                                 ProgressBarState::Active,
                                 PauseButtonState::Active,
                                 PauseButtonAction::Pause,
                             );
                         }
-                        AppState::FileError => unreachable!(),
                     }
                 }
-                Event::ProgressUpdate(d) => match self.state {
+                Event::ProgressUpdate(d) => match self.current_state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(progress_bar_state, _, _) => match progress_bar_state {
@@ -120,9 +123,8 @@ impl App {
                         }
                         ProgressBarState::WaitingForJump => {}
                     },
-                    AppState::FileError => unreachable!(),
                 },
-                Event::JumpedTo(d) => match self.state {
+                Event::JumpedTo(d) => match self.current_state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(progress_bar_state, x, y) => match progress_bar_state {
@@ -131,41 +133,38 @@ impl App {
                         }
                         ProgressBarState::WaitingForJump => {
                             self.set_progress_rounded(d);
-                            self.state = AppState::Playing(ProgressBarState::Active, x, y);
+                            self.current_state = AppState::Playing(ProgressBarState::Active, x, y);
                         }
                     },
-                    AppState::FileError => unreachable!(),
                 },
-                Event::NowPlaying => match self.state {
+                Event::NowPlaying => match self.current_state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => {}
                     AppState::Playing(x, _, _) => {
-                        self.state = AppState::Playing(
+                        self.current_state = AppState::Playing(
                             x,
                             PauseButtonState::Active,
                             PauseButtonAction::Pause,
                         );
                     }
-                    AppState::FileError => unreachable!(),
                 },
-                Event::NowPaused => match self.state {
+                Event::NowPaused => match self.current_state {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(x, _, _) => {
-                        self.state =
+                        self.current_state =
                             AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play);
                     }
-                    AppState::FileError => unreachable!(),
                 },
                 Event::NewSettings(s) => {
                     self.volume_input = s.volume;
                     self.root_music_path_input = s.root_music_path;
                 }
                 Event::DirError(err) => {
-                    self.state = AppState::Empty(EmptyDisplayMessage::Error(err));
+                    self.current_state = AppState::Empty(EmptyDisplayMessage::InitError(err));
                 }
                 Event::NotFoundError => {
-                    self.state = AppState::FileError;
+                    self.current_state = AppState::Empty(EmptyDisplayMessage::FileMoved);
                 }
             }
         }
@@ -216,8 +215,17 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        match self.next_state.take() {
+            None => {}
+            Some(s) => {
+                self.current_state = s;
+            }
+        }
+
         self.read_events(ctx);
-        match self.state {
+
+        // the state cannot be directly changed during rendering
+        match self.current_state {
             AppState::Empty(message) => {
                 self.spawn_path_top_panel(ctx);
                 Self::spawn_empty_central_panel(ctx, message);
@@ -233,9 +241,6 @@ impl eframe::App for App {
                 } else {
                     CentralPanel::default().show(ctx, |_| {});
                 }
-            }
-            AppState::FileError => {
-                Self::spawn_file_error_central_panel(ctx);
             }
         }
     }

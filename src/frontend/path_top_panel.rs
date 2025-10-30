@@ -15,7 +15,7 @@ impl App {
                 Layout::right_to_left(Align::TOP),
                 |ui| {
                     let response = ui.add_enabled(
-                        self.state != AppState::LoadingNewMusicDir,
+                        self.current_state != AppState::LoadingNewMusicDir,
                         Button::new("🔀"),
                     );
 
@@ -25,7 +25,7 @@ impl App {
                                 self.root_music_path_input.clone(),
                             )))
                             .unwrap();
-                        self.state = AppState::LoadingNewMusicDir;
+                        self.next_state = Some(AppState::LoadingNewMusicDir);
                     }
                     ui.add(
                         TextEdit::singleline(&mut self.root_music_path_input)

@@ -20,12 +20,13 @@ impl App {
     pub(crate) fn spawn_empty_central_panel(ctx: &Context, message: EmptyDisplayMessage) {
         let text: &str = match message {
             EmptyDisplayMessage::SelectFolder => "Select a folder",
-            EmptyDisplayMessage::Error(e) => match e {
+            EmptyDisplayMessage::InitError(e) => match e {
                 MusicDirCreationError::NotFound => "Error: path not found",
                 MusicDirCreationError::NotDir => "Error: selected path is not a folder",
                 MusicDirCreationError::Empty => "Error: no .mp3 files found inside the selected folder and its relative sub-folders",
                 MusicDirCreationError::Unknown => "An unknown error occurred",
-            }
+            },
+            EmptyDisplayMessage::FileMoved => "Music were changed or moved. A reload is necessary.",
         };
         CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {

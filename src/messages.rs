@@ -16,7 +16,6 @@ pub enum Request {
     Skip,
     SetVolume(f32), // [0, 1]
     ProvideContext(Context),
-    ErrorPageDisplayed,
 }
 
 #[derive(Debug)]

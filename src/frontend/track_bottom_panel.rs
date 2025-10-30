@@ -85,11 +85,13 @@ impl App {
             Some(dur) => self.progress.as_secs_f32() / dur.as_secs_f32(),
         };
 
-        let mut enabled = match self.state {
+        let mut enabled = match self.current_state {
             AppState::Empty(_) => unreachable!(),
             AppState::LoadingNewMusicDir => unreachable!(),
-            AppState::Playing(pbs, _, _) => pbs == ProgressBarState::Active,
-            AppState::FileError => unreachable!(),
+            AppState::Playing(pbs, _, _) => match pbs {
+                ProgressBarState::Active => true,
+                ProgressBarState::WaitingForJump => false,
+            },
         };
         enabled &= self.get_current_track_duration().is_some();
 
@@ -100,13 +102,13 @@ impl App {
                 .trailing_fill(true),
         );
         if response.drag_stopped() {
-            match self.state {
+            match self.current_state {
                 AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),
                 AppState::Playing(_, x, y) => {
-                    self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y);
+                    self.next_state =
+                        Some(AppState::Playing(ProgressBarState::WaitingForJump, x, y));
                 }
-                AppState::FileError => unreachable!(),
             };
             self.req_sender
                 .send(Request::JumpToFraction(progress_fraction))
@@ -115,14 +117,13 @@ impl App {
     }
 
     pub fn spawn_pause_button(&mut self, ui: &mut Ui) {
-        let text = match self.state {
+        let text = match self.current_state {
             AppState::Empty(_) => unreachable!(),
             AppState::LoadingNewMusicDir => unreachable!(),
             AppState::Playing(_, _, pba) => match pba {
                 PauseButtonAction::Pause => "⏸",
                 PauseButtonAction::Play => "▶",
             },
-            AppState::FileError => unreachable!(),
         };
 
         let response = ui.add_sized(
@@ -130,7 +131,7 @@ impl App {
             Button::new(RichText::new(text).size(20.0)).rounding(7.0),
         );
         if response.clicked() {
-            match self.state {
+            match self.current_state {
                 AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),
                 AppState::Playing(x, _, pba) => {
@@ -144,9 +145,9 @@ impl App {
                             self.req_sender.send(Request::Play).unwrap();
                         }
                     }
-                    self.state = AppState::Playing(x, PauseButtonState::WaitingForEvent, pba);
+                    self.next_state =
+                        Some(AppState::Playing(x, PauseButtonState::WaitingForEvent, pba));
                 }
-                AppState::FileError => unreachable!(),
             };
         }
     }
