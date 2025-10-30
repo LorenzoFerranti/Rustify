@@ -11,7 +11,7 @@ pub enum MusicDirCreationError {
 
 impl Display for MusicDirCreationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

@@ -9,7 +9,7 @@ use eframe::egui::ColorImage;
 use image::RgbaImage;
 use rodio::{Decoder, Source};
 use symphonia::core::formats::FormatOptions;
-use symphonia::core::io::MediaSourceStream;
+use symphonia::core::io::{MediaSourceStream, MediaSourceStreamOptions};
 use symphonia::core::meta::{MetadataOptions, StandardTagKey, Visual};
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
@@ -31,7 +31,7 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
             Ok(req) => match req {
                 Request::Track(path) => {
                     //println!("Loader: load request received: {}", path.display());
-                    handle_request(&mut state, path, &response_sender)
+                    handle_request(&mut state, path, &response_sender);
                 }
                 Request::ResetCompleted => {
                     state = State::Active;
@@ -89,7 +89,7 @@ pub fn get_track_metadata(path: &Path) -> TrackMetaData {
 
 fn extract_metadata(path: &Path) -> Option<TrackMetaData> {
     let file = File::open(path).ok()?;
-    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+    let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
     let probe = get_probe();
     let hint = Hint::new();
     let mut probed = probe
@@ -99,7 +99,7 @@ fn extract_metadata(path: &Path) -> Option<TrackMetaData> {
             &FormatOptions::default(),
             &MetadataOptions::default(),
         )
-        .map_err(|e| format!("Failed to probe format: {}", e))
+        .map_err(|e| format!("Failed to probe format: {e}"))
         .ok()?;
     let binding = probed.metadata.get()?;
     let metadata_reader = binding.current()?;

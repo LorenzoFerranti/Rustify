@@ -104,13 +104,13 @@ impl App {
                 AppState::Empty(_) => unreachable!(),
                 AppState::LoadingNewMusicDir => unreachable!(),
                 AppState::Playing(_, x, y) => {
-                    self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y)
+                    self.state = AppState::Playing(ProgressBarState::WaitingForJump, x, y);
                 }
                 AppState::FileError => unreachable!(),
             };
             self.req_sender
                 .send(Request::JumpToFraction(progress_fraction))
-                .unwrap()
+                .unwrap();
         }
     }
 
@@ -137,11 +137,11 @@ impl App {
                     match pba {
                         PauseButtonAction::Pause => {
                             // println!("UI: Pause sent");
-                            self.req_sender.send(Request::Pause).unwrap()
+                            self.req_sender.send(Request::Pause).unwrap();
                         }
                         PauseButtonAction::Play => {
                             // println!("UI: Play sent");
-                            self.req_sender.send(Request::Play).unwrap()
+                            self.req_sender.send(Request::Play).unwrap();
                         }
                     }
                     self.state = AppState::Playing(x, PauseButtonState::WaitingForEvent, pba);
@@ -167,13 +167,13 @@ pub fn formatted_duration(d: &Duration) -> String {
     let tot = d.as_secs();
     let sec = tot % 60;
     let min = tot / 60;
-    let mut sec_padding = "".to_string();
-    let mut min_padding = "".to_string();
+    let mut sec_padding = String::new();
+    let mut min_padding = String::new();
     if sec < 10 {
         sec_padding.push('0');
     }
     if min < 10 {
         min_padding.push('0');
     }
-    format!("{}{}:{}{}", min_padding, min, sec_padding, sec)
+    format!("{min_padding}{min}:{sec_padding}{sec}")
 }

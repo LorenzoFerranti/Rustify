@@ -39,7 +39,7 @@ pub fn run(request_receiver: Receiver<Request>, event_sender: Sender<Event>) {
         if !sink.empty() {
             event_sender
                 .send(Event::ProgressUpdate(sink.get_pos()))
-                .unwrap()
+                .unwrap();
         }
     }
 }
@@ -59,7 +59,7 @@ fn handle_request(
 
                 // append empty callback to send track finished signal
                 let sender = track_finished_sender.clone();
-                let ec: EmptyCallback = EmptyCallback::new(Box::new(move || {
+                let ec = EmptyCallback::new(Box::new(move || {
                     sender.send(()).unwrap();
                 }));
                 sink.append(ec);
@@ -71,7 +71,7 @@ fn handle_request(
                     let arc_clone = Arc::clone(track_metadata_queue.front().unwrap());
                     event_sender
                         .send(Event::NewTrackPlaying(Some(arc_clone)))
-                        .unwrap()
+                        .unwrap();
                 }
             }
             Request::Play => {
@@ -98,7 +98,7 @@ fn handle_request(
                     let progress_seconds = d.mul_f32(f);
                     println!("JUMP TO {progress_seconds:?}");
                     match sink.try_seek(progress_seconds) {
-                        Ok(_) => {
+                        Ok(()) => {
                             event_sender
                                 .send(Event::JumpedTo(progress_seconds))
                                 .unwrap();
@@ -117,7 +117,7 @@ fn handle_request(
             Request::Clear => {
                 sink.clear();
                 track_metadata_queue.clear();
-                event_sender.send(Event::NewTrackPlaying(None)).unwrap()
+                event_sender.send(Event::NewTrackPlaying(None)).unwrap();
             }
             Request::SetVolume(v) => {
                 sink.set_volume(v * v); // adjust volume curve

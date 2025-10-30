@@ -50,12 +50,12 @@ pub fn write(data: &Settings) {
     });
 
     let mut file = File::create(SETTINGS_RELATIVE_PATH).unwrap_or_else(|e| {
-        eprintln!("Failed to create file '{}': {e}", SETTINGS_RELATIVE_PATH);
+        eprintln!("Failed to create file '{SETTINGS_RELATIVE_PATH}': {e}");
         process::exit(1);
     });
 
     file.write_all(json_string.as_ref()).unwrap_or_else(|e| {
-        eprintln!("Failed to write to file '{}': {e}", SETTINGS_RELATIVE_PATH);
+        eprintln!("Failed to write to file '{SETTINGS_RELATIVE_PATH}': {e}");
         process::exit(1);
     });
 }

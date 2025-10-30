@@ -17,11 +17,7 @@ impl App {
         });
     }
 
-    pub(crate) fn spawn_empty_central_panel(
-        &mut self,
-        ctx: &Context,
-        message: EmptyDisplayMessage,
-    ) {
+    pub(crate) fn spawn_empty_central_panel(ctx: &Context, message: EmptyDisplayMessage) {
         let text: &str = match message {
             EmptyDisplayMessage::SelectFolder => "Select a folder",
             EmptyDisplayMessage::Error(e) => match e {
@@ -38,7 +34,7 @@ impl App {
         });
     }
 
-    pub(crate) fn spawn_loading_central_panel(&mut self, ctx: &Context) {
+    pub(crate) fn spawn_loading_central_panel(ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
                 ui.label("Loading tracks...");
@@ -46,7 +42,7 @@ impl App {
         });
     }
 
-    pub(crate) fn spawn_file_error_central_panel(&mut self, ctx: &Context) {
+    pub(crate) fn spawn_file_error_central_panel(ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
                 ui.label("FILE ERROR");

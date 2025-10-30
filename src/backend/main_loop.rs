@@ -182,7 +182,7 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
                     .send(player_messages::Request::Enqueue(source, metadata))
                     .unwrap();
                 data.queued_tracks += 1;
-                data.loading_tracks -= 1
+                data.loading_tracks -= 1;
             }
             loader_messages::Response::NotFound => {
                 println!("not found!!!!!");

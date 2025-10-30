@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::track_metadata::TrackMetaData;
 
-pub(crate) enum Request {
+pub enum Request {
     Enqueue(File, Arc<TrackMetaData>),
     Play,
     Pause,
@@ -15,7 +15,7 @@ pub(crate) enum Request {
 }
 
 #[derive(Clone)]
-pub(crate) enum Event {
+pub enum Event {
     ProgressUpdate(Duration),
     NowPlaying,
     NowPaused,

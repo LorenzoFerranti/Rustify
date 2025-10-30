@@ -190,10 +190,10 @@ impl _MusicDir {
             self.get_sub_played_factor(),
         );
         for (name, played) in &self.local_tracks {
-            for _ in 0..indent + 1 {
+            for _ in 0..=indent {
                 print!("    ");
             }
-            println!("{:?} - {played}", name)
+            println!("{name:?} - {played}");
         }
         for dir in &self.sub_dirs {
             dir.print_tree(indent + 1);
@@ -212,7 +212,7 @@ fn get_all_tracks(path: &Path) -> Option<Vec<(OsString, u32)>> {
         if let Some(ext) = entry_path.extension().and_then(|e| e.to_str()) {
             if VALID_EXTENSIONS.contains(&ext) {
                 if let Some(name) = entry_path.file_name() {
-                    res.push((name.to_os_string(), 0))
+                    res.push((name.to_os_string(), 0));
                 }
             }
         }

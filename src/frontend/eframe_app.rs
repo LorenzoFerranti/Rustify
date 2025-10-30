@@ -14,7 +14,7 @@ use eframe::{CreationContext, Frame};
 const DEFAULT_TEXTURE_PATH: &str = "assets/cover.png";
 
 #[derive(Copy, Clone, Eq, PartialEq)]
-pub(crate) enum AppState {
+pub enum AppState {
     Empty(EmptyDisplayMessage),
     LoadingNewMusicDir,
     Playing(ProgressBarState, PauseButtonState, PauseButtonAction),
@@ -22,25 +22,25 @@ pub(crate) enum AppState {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) enum EmptyDisplayMessage {
+pub enum EmptyDisplayMessage {
     SelectFolder,
     Error(MusicDirCreationError),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
-pub(crate) enum ProgressBarState {
+pub enum ProgressBarState {
     Active,
     WaitingForJump,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) enum PauseButtonState {
+pub enum PauseButtonState {
     Active,
     WaitingForEvent,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) enum PauseButtonAction {
+pub enum PauseButtonAction {
     Pause,
     Play,
 }
@@ -140,8 +140,11 @@ impl App {
                     AppState::Empty(_) => unreachable!(),
                     AppState::LoadingNewMusicDir => {}
                     AppState::Playing(x, _, _) => {
-                        self.state =
-                            AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Pause)
+                        self.state = AppState::Playing(
+                            x,
+                            PauseButtonState::Active,
+                            PauseButtonAction::Pause,
+                        );
                     }
                     AppState::FileError => unreachable!(),
                 },
@@ -150,7 +153,7 @@ impl App {
                     AppState::LoadingNewMusicDir => unreachable!(),
                     AppState::Playing(x, _, _) => {
                         self.state =
-                            AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play)
+                            AppState::Playing(x, PauseButtonState::Active, PauseButtonAction::Play);
                     }
                     AppState::FileError => unreachable!(),
                 },
@@ -158,8 +161,8 @@ impl App {
                     self.volume_input = s.volume;
                     self.root_music_path_input = s.root_music_path;
                 }
-                Event::DirError(e) => {
-                    self.state = AppState::Empty(EmptyDisplayMessage::Error(e));
+                Event::DirError(err) => {
+                    self.state = AppState::Empty(EmptyDisplayMessage::Error(err));
                 }
                 Event::NotFoundError => {
                     self.state = AppState::FileError;
@@ -217,10 +220,10 @@ impl eframe::App for App {
         match self.state {
             AppState::Empty(message) => {
                 self.spawn_path_top_panel(ctx);
-                self.spawn_empty_central_panel(ctx, message);
+                Self::spawn_empty_central_panel(ctx, message);
             }
             AppState::LoadingNewMusicDir => {
-                self.spawn_loading_central_panel(ctx);
+                Self::spawn_loading_central_panel(ctx);
             }
             AppState::Playing(_, _, _) => {
                 self.spawn_path_top_panel(ctx);
@@ -232,7 +235,7 @@ impl eframe::App for App {
                 }
             }
             AppState::FileError => {
-                self.spawn_file_error_central_panel(ctx);
+                Self::spawn_file_error_central_panel(ctx);
             }
         }
     }
