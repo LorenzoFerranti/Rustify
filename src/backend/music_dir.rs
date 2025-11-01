@@ -45,13 +45,13 @@ struct _MusicDir {
 
 impl _MusicDir {
     fn new(path: &Path) -> Result<Self, MusicDirCreationError> {
-        println!("Creating {}", path.display());
+        // println!("Creating {}", path.display());
         if !path.exists() {
-            println!("DOESNT EXIST");
+            // println!("DOESNT EXIST");
             return Err(MusicDirCreationError::NotFound);
         }
         if !path.is_dir() {
-            println!("NOT DIR");
+            // println!("NOT DIR");
             return Err(MusicDirCreationError::NotDir);
         }
         let name = match path.file_name() {

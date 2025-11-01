@@ -30,7 +30,6 @@ impl App {
 
                 // slider
                 ui.horizontal(|ui| {
-                    // TODO: change
                     ui.label(formatted_duration(&self.progress));
                     // layout needed for correct expansion of the slider
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

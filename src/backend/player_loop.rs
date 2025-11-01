@@ -83,11 +83,7 @@ fn handle_request(
                 event_sender.send(Event::NowPlaying).unwrap();
             }
             Request::Pause => {
-                println!("Player thread: received pause");
-                println!("Sink is paused: {0}", sink.is_paused());
                 sink.pause();
-                println!("Sink is paused: {0}", sink.is_paused());
-
                 event_sender.send(Event::NowPaused).unwrap();
             }
             Request::JumpToFraction(f) => match track_metadata_queue.front().unwrap().duration {
@@ -96,7 +92,7 @@ fn handle_request(
                 }
                 Some(d) => {
                     let progress_seconds = d.mul_f32(f);
-                    println!("JUMP TO {progress_seconds:?}");
+                    // println!("JUMP TO {progress_seconds:?}");
                     match sink.try_seek(progress_seconds) {
                         Ok(()) => {
                             event_sender
@@ -104,8 +100,8 @@ fn handle_request(
                                 .unwrap();
                         }
                         Err(e) => {
-                            println!("ERROR IN SEEK!");
-                            println!("{e}");
+                            // println!("ERROR IN SEEK!");
+                            eprintln!("{e}");
                             exit(1)
                         }
                     }

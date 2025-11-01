@@ -179,7 +179,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
         },
         // TODO: handle this
         Err(e) => {
-            println!("Error in handle request: {e:?}");
+            //println!("Error in handle request: {e:?}");
             exit(1);
         }
     }
@@ -196,7 +196,6 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
                 data.loading_tracks -= 1;
             }
             loader_messages::Response::NotFound => {
-                println!("not found!!!!!");
                 data.state = State::WaitingForReset;
                 data.event_sender
                     .send(messages::Event::NotFoundError)
@@ -207,7 +206,7 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
             }
         },
         Err(e) => {
-            println!("Error in handle load response: {e:?}");
+            //println!("Error in handle load response: {e:?}");
             exit(1);
         }
     }
@@ -267,7 +266,7 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
             }
         }
         Err(e) => {
-            println!("Error in handle player event: {e:?}");
+            //println!("Error in handle player event: {e:?}");
             exit(1);
         }
     }
