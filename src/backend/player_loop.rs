@@ -52,7 +52,7 @@ fn handle_request(
     track_metadata_queue: &mut VecDeque<Arc<TrackMetaData>>,
 ) {
     match res {
-        Ok(req) => match req {
+        Ok(request) => match request {
             Request::Enqueue(track, metadata) => {
                 let source = Decoder::try_from(track).unwrap();
                 sink.append(source);

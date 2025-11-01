@@ -10,7 +10,6 @@ use crate::track_metadata::TrackMetaData;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{CentralPanel, Context, TextureHandle, TextureOptions};
 use eframe::{CreationContext, Frame};
-use rodio::play;
 
 const DEFAULT_TEXTURE_PATH: &str = "assets/cover.png";
 

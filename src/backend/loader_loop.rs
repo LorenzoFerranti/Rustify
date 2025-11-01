@@ -146,7 +146,7 @@ fn extract_metadata(path: &Path) -> Option<TrackMetaData> {
 fn get_color_image_from_visual(v: &Visual) -> Option<ColorImage> {
     let data_box = &*v.data;
     let image = get_rgba_image_from_slice(data_box)?;
-    let image = image_utils::get_color_image_from_rgba_image(image);
+    let image = image_utils::get_color_image_from_rgba_image(&image);
     Some(image)
 }
 

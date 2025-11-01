@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::ffi::OsString;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
@@ -13,7 +14,7 @@ pub(crate) struct MusicDir {
 impl MusicDir {
     pub(crate) fn new(root_path: &Path) -> Result<Self, MusicDirCreationError> {
         let music_dir = _MusicDir::new(root_path)?;
-        let new_root_path = root_path.parent().map(|p| p.to_path_buf());
+        let new_root_path = root_path.parent().map(Path::to_path_buf);
         Ok(Self {
             root_path: new_root_path,
             music_dir,
@@ -94,15 +95,20 @@ impl _MusicDir {
                     least_played_factor = Some(dir.get_played_factor());
                     least_played_dirs.push(dir);
                 }
-                Some(lpf) => {
-                    if dir.get_played_factor() < lpf {
-                        least_played_factor = Some(dir.get_played_factor());
-                        least_played_dirs.clear();
-                        least_played_dirs.push(dir);
-                    } else if dir.get_played_factor() == lpf {
-                        least_played_dirs.push(dir);
-                    }
-                }
+                Some(lpf) => match dir.get_played_factor().partial_cmp(&lpf) {
+                    None => unreachable!(),
+                    Some(ord) => match ord {
+                        Ordering::Less => {
+                            least_played_factor = Some(dir.get_played_factor());
+                            least_played_dirs.clear();
+                            least_played_dirs.push(dir);
+                        }
+                        Ordering::Equal => {
+                            least_played_dirs.push(dir);
+                        }
+                        Ordering::Greater => {}
+                    },
+                },
             }
         }
 
@@ -159,15 +165,17 @@ impl _MusicDir {
                     least_played_factor = Some(*played_factor);
                     least_played_tracks_ids.push(track_index);
                 }
-                Some(lpf) => {
-                    if *played_factor < lpf {
+                Some(lpf) => match (*played_factor).cmp(&lpf) {
+                    Ordering::Less => {
                         least_played_factor = Some(*played_factor);
                         least_played_tracks_ids.clear();
                         least_played_tracks_ids.push(track_index);
-                    } else if *played_factor == lpf {
+                    }
+                    Ordering::Equal => {
                         least_played_tracks_ids.push(track_index);
                     }
-                }
+                    Ordering::Greater => {}
+                },
             }
         }
         let random_index = get_random_index(&least_played_tracks_ids);

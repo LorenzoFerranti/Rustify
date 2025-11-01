@@ -5,10 +5,10 @@ use std::path::{Path, PathBuf};
 pub fn load_color_image(path: &Path) -> Option<ColorImage> {
     let path_buf = PathBuf::from(path);
     let dyn_img = image::open(&path_buf).ok()?;
-    Some(get_color_image_from_rgba_image(dyn_img.to_rgba8()))
+    Some(get_color_image_from_rgba_image(&dyn_img.to_rgba8()))
 }
 
-pub fn get_color_image_from_rgba_image(image: RgbaImage) -> ColorImage {
+pub fn get_color_image_from_rgba_image(image: &RgbaImage) -> ColorImage {
     let (width, height) = image.dimensions();
     let pixels: Vec<_> = image
         .pixels()

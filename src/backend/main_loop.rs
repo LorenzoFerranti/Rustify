@@ -98,14 +98,14 @@ pub fn run(request_receiver: Receiver<messages::Request>, event_sender: Sender<m
                 res,
                 &mut data
             ),
-            default => println!("q {} l {}", data.queued_tracks, data.loading_tracks),
+            // default => println!("q {} l {}", data.queued_tracks, data.loading_tracks),
         }
     }
 }
 
 fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadData) {
     match res {
-        Ok(req) => match req {
+        Ok(request) => match request {
             messages::Request::ChangeRoot(path) => {
                 data.player_req_sender
                     .send(player_messages::Request::Clear)
@@ -151,7 +151,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
                     }
                     PlayState::WaitingForJumpResponse => unreachable!(),
                 },
-                State::WaitingForReset => return,
+                State::WaitingForReset => {}
             },
             messages::Request::Skip => {
                 if data.state == State::WaitingForReset {
@@ -232,8 +232,8 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
                         data.event_sender
                             .send(messages::Event::NewTrackPlaying(Some(metadata)))
                             .unwrap();
-                        let tracks_to_load = (TRACK_QUEUE_FILL_UNTIL as i16)
-                            - ((data.queued_tracks + data.loading_tracks) as i16);
+                        let tracks_to_load = i16::from(TRACK_QUEUE_FILL_UNTIL)
+                            - i16::from(data.queued_tracks + data.loading_tracks);
                         // println!("[MAIN] Tracks to load: {tracks_to_load}");
                         if tracks_to_load > 0 {
                             load_random_tracks(tracks_to_load as u8, data);
