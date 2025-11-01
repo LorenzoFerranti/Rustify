@@ -38,7 +38,7 @@ pub fn run(request_receiver: Receiver<Request>, response_sender: Sender<Response
                 }
             },
             Err(e) => {
-                //println!("Error in loader thread: {e:?}");
+                eprintln!("Error in loader thread: {e:?}");
                 exit(1);
             }
         }

@@ -179,7 +179,7 @@ fn handle_request(res: Result<messages::Request, RecvError>, data: &mut ThreadDa
         },
         // TODO: handle this
         Err(e) => {
-            //println!("Error in handle request: {e:?}");
+            eprintln!("Error in handle request: {e:?}");
             exit(1);
         }
     }
@@ -206,7 +206,7 @@ fn handle_load_response(res: Result<loader_messages::Response, RecvError>, data:
             }
         },
         Err(e) => {
-            //println!("Error in handle load response: {e:?}");
+            eprintln!("Error in handle load response: {e:?}");
             exit(1);
         }
     }
@@ -266,7 +266,7 @@ fn handle_player_event(res: Result<player_messages::Event, RecvError>, data: &mu
             }
         }
         Err(e) => {
-            //println!("Error in handle player event: {e:?}");
+            eprintln!("Error in handle player event: {e:?}");
             exit(1);
         }
     }
